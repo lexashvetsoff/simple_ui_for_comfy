@@ -1,17 +1,31 @@
-from pydantic_settings import BaseSettings
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BASE_PATH = os.path.dirname(__file__)
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = 'ComfyUI Orchestrator'
-    API_V1_STR: str = '/api'
+    DB_HOST: str
+    DB_PORT: int
+    DB_USER: str
+    DB_PASS: str
+    DB_NAME: str
 
-    DEBAG: bool = False
+    PROJECT_NAME: str
+    API_V1_STR: str
 
-    SECRET_KEY: str = 'COMFYUI_FG_2026'
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    DEBAG: bool
 
-    class Config:
-        env_file = '.env'
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+    model_config = SettingsConfigDict(
+        # env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        env_file='.env'
+    )
+    # class Config:
+    #     env_file = '.env'
 
 
 settings = Settings()

@@ -10,6 +10,7 @@ from app.schemas.user import (
     UserUpdate,
     UserOut
 )
+from app.models.user_limits import UserLimits
 from app.core.security import hash_password
 
 
@@ -42,6 +43,11 @@ async def create_user(
         is_active=True
     )
     db.add(user)
+    await db.flush()    # <-- получаем user.id
+
+    limits = UserLimits(user_id=user.id)
+    db.add(limits)
+
     await db.commit()
     await db.refresh(user)
     return user

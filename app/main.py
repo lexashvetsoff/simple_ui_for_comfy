@@ -10,6 +10,7 @@ from app.core.bootstrap import create_initial_admin
 from app.api.auth import router as auth_router
 from app.api.admin.users import router as admin_router
 from app.api.admin.user_limits import router as user_limits_router
+from app.api.admin.comfy_nodes import router as comfy_nodes_router
 
 
 @asynccontextmanager
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(admin_router)
     app.include_router(user_limits_router)
+    app.include_router(comfy_nodes_router)
     
     logger.info('Application started')
     return app

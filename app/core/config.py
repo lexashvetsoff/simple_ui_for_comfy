@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     INITIAL_ADMIN_EMAIL: str | None = None
     INITIAL_ADMIN_PASSWORD: str | None = None
 
+    COMFY_HEALTHCHECK_INTERVAL: int   # секунд
+    COMFY_HEALTHCHECK_TIMEOUT: int     # секунд
+    COMFY_DEAD_AFTER: int   # секунд
+
     model_config = SettingsConfigDict(
         # env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
         env_file='.env'

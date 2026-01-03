@@ -1,10 +1,26 @@
 from fastapi import FastAPI
+from loguru import logger
+from contextlib import asynccontextmanager
+
 from app.core.config import settings
 from app.core.logging import setup_logging
-from loguru import logger
+from app.db.session import AsyncSessionLocal
+from app.core.bootstrap import create_initial_admin
 
 from app.api.auth import router as auth_router
 from app.api.admin.users import router as admin_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # STARTUP
+    async with AsyncSessionLocal() as session:
+        await create_initial_admin(session)
+    
+    yield
+
+    # SHUTDOWN
+    # здесь можно закрывать соединения, если нужно
 
 
 def create_app() -> FastAPI:
@@ -12,6 +28,7 @@ def create_app() -> FastAPI:
     
     app = FastAPI(
         title=settings.PROJECT_NAME,
+        lifespan=lifespan,
         debug=settings.DEBAG
     )
 

@@ -22,4 +22,4 @@ class Workflow(Base):
     spec_json: Mapped[dict] = mapped_column(JSON)
     workflow_json: Mapped[dict] = mapped_column(JSON)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now())

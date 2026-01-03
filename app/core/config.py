@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int
     ALGORITHM: str
 
+    INITIAL_ADMIN_EMAIL: str | None = None
+    INITIAL_ADMIN_PASSWORD: str | None = None
+
     model_config = SettingsConfigDict(
         # env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
         env_file='.env'

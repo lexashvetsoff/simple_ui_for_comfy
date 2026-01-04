@@ -2,6 +2,12 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 
+class BindingSpec(BaseModel):
+    node_id: str
+    field: str
+    map: Optional[Dict[str, Any]] = None
+
+
 class WorkflowMeta(BaseModel):
     title: str
     description: Optional[str] = None
@@ -19,6 +25,7 @@ class TextInputSpec(BaseModel):
     required: bool = False
     ui: Optional[Dict[str, Any]] = None
     validation: Optional[Dict[str, Any]] = None
+    binding: BindingSpec
 
 
 class ImageInputSpec(BaseModel):
@@ -28,6 +35,7 @@ class ImageInputSpec(BaseModel):
     multiple: bool = False
     max: Optional[int] = None
     modes: Optional[List[str]] = None
+    binding: BindingSpec
 
 
 class MaskInputSpec(BaseModel):
@@ -37,6 +45,7 @@ class MaskInputSpec(BaseModel):
     required: bool = False
     ui: Optional[Dict[str, Any]] = None
     modes: Optional[List[str]] = None
+    binding: BindingSpec
 
 
 class ParamInputSpec(BaseModel):
@@ -45,6 +54,7 @@ class ParamInputSpec(BaseModel):
     label: str
     default: Optional[Any] = None
     validation: Optional[Dict[str, Any]] = None
+    binding: BindingSpec
 
 
 class PreprocessingBlock(BaseModel):

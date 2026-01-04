@@ -14,6 +14,7 @@ from app.api.admin.users import router as admin_router
 from app.api.admin.user_limits import router as user_limits_router
 from app.api.admin.comfy_nodes import router as comfy_nodes_router
 from app.api.admin.health import router as health_router
+from app.api.admin.workflows import router as workflows_router
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(user_limits_router)
     app.include_router(comfy_nodes_router)
     app.include_router(health_router)
+    app.include_router(workflows_router)
     
     logger.info('Application started')
     return app

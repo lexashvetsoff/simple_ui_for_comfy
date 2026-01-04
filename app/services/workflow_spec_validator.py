@@ -2,17 +2,6 @@ from fastapi import HTTPException
 from app.schemas.workflow_spec_v2 import WorkflowSpecV2
 
 
-ALLOWED_INPUT_TYPES = {
-    "text",
-    "int",
-    "float",
-    "bool",
-    "image",
-    "mask",
-    "select",
-}
-
-
 def validate_workflow_spec(spec: dict) -> WorkflowSpecV2:
     try:
         parsed = WorkflowSpecV2(**spec)

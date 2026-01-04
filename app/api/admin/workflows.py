@@ -77,6 +77,15 @@ async def upload_workflow(
     db: AsyncSession = Depends(get_db),
     user=Depends(require_admin),
 ):
+    # slug uniqueness check
+    existing = await db.execute(select(Workflow).where(Workflow.slug == payload.slug))
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=409,
+            detail="Workflow with this slug already exists"
+        )
+
+    # validate spec
     spec = validate_workflow_spec(payload.spec_json)
 
     workflow = Workflow(

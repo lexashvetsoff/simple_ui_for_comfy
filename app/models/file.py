@@ -10,7 +10,7 @@ class File(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    job_id: Mapped[int] = mapped_column(ForeignKey('jobs.id'))
+    job_id: Mapped[str] = mapped_column(ForeignKey('jobs.id'))
     type: Mapped[str] = mapped_column(String)   # input | mask | output
 
     path: Mapped[str] = mapped_column(String)

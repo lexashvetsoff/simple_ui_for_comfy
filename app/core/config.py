@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     COMFY_HEALTHCHECK_TIMEOUT: int     # секунд
     COMFY_DEAD_AFTER: int   # секунд
 
+    STORAGE_ROOT: str
+
     model_config = SettingsConfigDict(
         # env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
         env_file='.env'

@@ -1,50 +1,110 @@
+import asyncio
+from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from datetime import datetime, timedelta
 
-from app.models.comfy_node import ComfyNode
 from app.models.job import Job
+from app.models.job_execution import JobExecution
+from app.models.comfy_node import ComfyNode
+from app.services.comfy_client import submit_workflow
 
 
-class NoAvailableNode(Exception):
-    pass
-
-
-async def get_node_loads(db: AsyncSession):
+async def select_avilable_node(
+        *,
+        db: AsyncSession
+) -> ComfyNode | None:
     result = await db.execute(
-        select(ComfyNode, func.count(Job.id).label('load'))
-        .outerjoin(
-            Job,
-            (Job.node_id == ComfyNode.id)
-            & Job.status.in_(['QUEUED', 'RUNNING'])
-        )
+        select(ComfyNode)
         .where(ComfyNode.is_active == True)
-        .group_by(ComfyNode.id)
+        .order_by(ComfyNode.last_seen.desc())
     )
+    return result.scalars().first()
 
-    return result.all()
 
-
-async def select_node(db: AsyncSession) -> ComfyNode:
-    await db.execute("LOCK TABLE jobs IN SHARE ROW EXCLUSIVE MODE")
+async def enqueue_job(
+        *,
+        db: AsyncSession,
+        job: Job
+):
+    """
+    Scheduler entrypoint.
+    Просто помечает Job как готовый к выполнению.
+    """
+    if job.status != 'QUEUED':
+        return
     
-    nodes = await get_node_loads(db)
+    # Scheduler loop сам подхватит job
+    await db.commit()
 
-    if not nodes:
-        raise NoAvailableNode('No active nodes')
+
+async def scheduler_tick(
+        *,
+        db: AsyncSession,
+        batch_size: int = 5
+):
+    """
+    Один тик планировщика.
+    """
+    # 1. Берём Job, готовые к запуску
+    result = await db.execute(
+        select(Job)
+        .where(Job.status == 'QUEUED')
+        .limit(batch_size)
+    )
+    jobs = result.scalars().all()
+
+    if not jobs:
+        return
     
-    candidates = []
+    # 2. Выбираем ноду
+    node = await select_avilable_node(db=db)
+    if not node:
+        return
+    
+    for job in jobs:
+        # 3. Создаём execution
+        execution = JobExecution(
+            job_id=job.id,
+            node_id=node.id,
+            status='RUNNING',
+            started_at=datetime.now()
+        )
 
-    for node, load in nodes:
-        if load < node.max_queue:
-            score = (
-                node.priority * 10 - load * 5
+        db.add(execution)
+        job.status = 'RUNNING'
+
+        await db.commit()
+        await db.refresh(execution)
+
+        # 4. Отправляем в ComfyUI
+        try:
+            prompt_id = await submit_workflow(
+                node=node,
+                workflow=job.prepared_workflow
             )
-            candidates.append((score, node))
+
+            execution.prompt_id = prompt_id
+            await db.commit()
+        except Exception as e:
+            execution.status = 'ERROR'
+            execution.error_message = str(e)
+            job.status = 'ERROR'
+            job.error_message = str(e)
+            await db.commit()
+
+
+async def poll_execution_status(
+        *,
+        db: AsyncSession,
+        execution: JobExecution
+):
+    """
+    Проверяет статус execution.
+    Вызывается воркером / background task.
+    """
+    # TODO:
+    # - запрос к ComfyUI
+    # - обновление execution.status
+    # - вызов job_service.handle_execution_result
+    pass
     
-    if not candidates:
-        raise NoAvailableNode('All nodes overloaded')
-    
-    # выбираем ноду с максимальным score
-    candidates.sort(key=lambda x: x[0], reverse=True)
-    return candidates[0][1]

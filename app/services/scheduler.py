@@ -7,6 +7,8 @@ from app.models.job import Job
 from app.models.job_execution import JobExecution
 from app.models.comfy_node import ComfyNode
 from app.services.comfy_client import submit_workflow
+from app.services.comfy_client import get_prompt_result
+from app.services.job_service import handle_execution_result
 
 
 async def select_avilable_node(
@@ -107,4 +109,52 @@ async def poll_execution_status(
     # - обновление execution.status
     # - вызов job_service.handle_execution_result
     pass
+
+
+async def poll_running_executions(
+        *,
+        db: AsyncSession,
+        batch_size: int = 10
+):
+    """
+    Проверяет RUNNING execution и финализирует их.
+    """
+    result = await db.execute(
+        select(JobExecution)
+        .where(JobExecution.status == 'RUNNING')
+        .limit(batch_size)
+    )
+    executions = result.scalars().all()
+
+    for execution in executions:
+        if not execution.prompt_id:
+            continue
+
+        node = await db.get(ComfyNode, execution.node_id)
+        if not node:
+            continue
+
+        try:
+            outputs = await get_prompt_result(node=node, prompt_id=execution.prompt_id)
+        except Exception as e:
+            await handle_execution_result(
+                db=db,
+                execution=execution,
+                error=str(e)
+            )
+            continue
+
+        if outputs is None:
+            continue
+
+        # execution finished successfully
+        execution.status = 'DONE'
+        execution.finished_at = datetime.now()
+        await db.commit()
+
+        await handle_execution_result(
+            db=db,
+            execution=execution,
+            result=outputs
+        )
     

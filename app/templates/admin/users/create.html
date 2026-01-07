@@ -1,0 +1,29 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+
+<h2>Create user</h2>
+
+{% if error %}
+    <p style="color: red">{{ error }}</p>
+{% endif %}
+
+<form method="post">
+    <label>Email</label><br>
+    <input type="email" name="email" required><br><br>
+
+    <label>Password</label><br>
+    <input type="password" name="password" required><br><br>
+
+    <label>Role</label><br>
+    <select name="role">
+        <option value="USER">USER</option>
+        <option value="ADMIN">ADMIN</option>
+    </select><br><br>
+
+    <button type="submit">Create</button>
+</form>
+
+<p><a href="/admin/users">← Back</a></p>
+
+{% endblock %}

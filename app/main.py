@@ -1,6 +1,7 @@
 import asyncio
-from fastapi import FastAPI
 from loguru import logger
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
@@ -10,11 +11,12 @@ from app.core.bootstrap import create_initial_admin
 from app.services.comfy_health import healthcheck_loop
 
 from app.api.auth import router as auth_router
-from app.api.admin.users import router as admin_router
+from app.api.admin.users import router as admin_users_router
 from app.api.admin.user_limits import router as user_limits_router
 from app.api.admin.comfy_nodes import router as comfy_nodes_router
 from app.api.admin.health import router as health_router
 from app.api.admin.workflows import router as workflows_router
+from app.admin.router import router as admin_router
 
 
 @asynccontextmanager
@@ -42,16 +44,19 @@ def create_app() -> FastAPI:
         debug=settings.DEBAG
     )
 
+    app.mount('/static', StaticFiles(directory='app/static'), name='static')
+
     @app.get('/health', tags=['system'])
     def health_check():
         return {'status': 'Ok'}
     
     app.include_router(auth_router)
+    app.include_router(admin_users_router, prefix=settings.API_V1_STR)
+    app.include_router(user_limits_router, prefix=settings.API_V1_STR)
+    app.include_router(comfy_nodes_router, prefix=settings.API_V1_STR)
+    app.include_router(health_router, prefix=settings.API_V1_STR)
+    app.include_router(workflows_router, prefix=settings.API_V1_STR)
     app.include_router(admin_router)
-    app.include_router(user_limits_router)
-    app.include_router(comfy_nodes_router)
-    app.include_router(health_router)
-    app.include_router(workflows_router)
     
     logger.info('Application started')
     return app

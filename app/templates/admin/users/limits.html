@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<h2>User limits: {{ target.email }}</h2>
+
+<form method="post" action="/admin/users/{{ target.id }}/limits">
+    <label>Max concurrent jobs</label><br>
+    <input type="number" name="max_concurrent_jobs" value="{{ limits.max_concurrent_jobs }}"><br><br>
+
+    <label>Max jobs per day</label><br>
+    <input type="number" name="max_jobs_per_day" value="{{ limits.max_jobs_per_day }}"><br><br>
+
+    <button type="submit">Save</button>
+</form>
+
+<p><a href="/admin/users">← Back</a></p>
+
+{% endblock %}

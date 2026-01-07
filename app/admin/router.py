@@ -9,6 +9,7 @@ from app.api.deps import get_db, require_admin
 from app.core.templates import templates
 from app.models.user import User
 from app.models.user_limits import UserLimits
+from app.models.comfy_node import ComfyNode
 from app.core.security import verify_password
 from app.core.jwt import create_access_token
 from app.core.security import hash_password
@@ -227,5 +228,136 @@ async def admin_user_create(
 
     return RedirectResponse(
         url='/admin/users',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.get('/nodes', response_class=HTMLResponse)
+async def admin_nodes_list(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    result = await db.execute(select(ComfyNode).order_by(ComfyNode.id))
+    nodes = result.scalars().all()
+
+    return templates.TemplateResponse(
+        '/admin/nodes/list.html',
+        {
+            'request': request,
+            'user': admin,
+            'nodes': nodes
+        }
+    )
+
+
+@router.get('/nodes/create', response_class=HTMLResponse)
+async def admin_node_create_page(
+    request: Request,
+    admin: User = Depends(require_admin)
+):
+    return templates.TemplateResponse(
+        '/admin/nodes/form.html',
+        {
+            'request': request,
+            'user': admin,
+            'node': None
+        }
+    )
+
+
+@router.post('/nodes/create')
+async def admin_node_create(
+    name: str = Form(...),
+    base_url: str = Form(...),
+    max_queue: int = Form(...),
+    priority: int = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    node = ComfyNode(
+        name=name,
+        base_url=base_url,
+        is_active=True,
+        max_queue=max_queue,
+        priority=priority
+    )
+    db.add(node)
+    await db.commit()
+
+    return RedirectResponse(
+        url='/admin/nodes',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.get('/nodes/{node_id}/edit', response_class=HTMLResponse)
+async def admin_node_edit_page(
+    node_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    result = await db.execute(select(ComfyNode).where(ComfyNode.id == node_id))
+    node = result.scalar_one_or_none()
+
+    if not node:
+        raise HTTPException(status_code=404, detail='Node not found')
+    
+    return templates.TemplateResponse(
+        '/admin/nodes/form.html',
+        {
+            'request': request,
+            'user': admin,
+            'node': node
+        }
+    )
+
+
+@router.post('/nodes/{node_id}/edit')
+async def admin_node_edit(
+    node_id: int,
+    name: str = Form(...),
+    base_url: str = Form(...),
+    max_queue: int = Form(...),
+    priority: int = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    result = await db.execute(select(ComfyNode).where(ComfyNode.id == node_id))
+    node = result.scalar_one_or_none()
+
+    if not node:
+        raise HTTPException(status_code=404, detail='Node not found')
+    
+    node.name = name
+    node.base_url = base_url
+    node.max_queue = max_queue
+    node.priority = priority
+    await db.commit()
+
+    return RedirectResponse(
+        url='/admin/nodes',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.post('/nodes/{node_id}/toggle')
+async def admin_node_toggle(
+    node_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    result = await db.execute(select(ComfyNode).where(ComfyNode.id == node_id))
+    node = result.scalar_one_or_none()
+
+    if not node:
+        raise HTTPException(status_code=404, detail='Node not found')
+    
+    node.is_active = not node.is_active
+    await db.commit()
+
+    return RedirectResponse(
+        url='/admin/nodes',
         status_code=HTTP_302_FOUND
     )

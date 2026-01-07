@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<h2>{{ "Edit" if node else "Add" }}</h2>
+
+<form method="post" action="{% if node %}/admin/nodes/{{ node.id }}/edit{% else %}/admin/nodes/create{% endif %}">
+    <label>Name</label><br>
+    <input type="text" name="name" value="{{ node.name if node else '' }}"><br><br>
+
+    <label>BaseUrl</label><br>
+    <input type="text" name="base_url" value="{{ node.base_url if node else '' }}" required><br><br>
+
+    <label>MaxQueue</label><br>
+    <input type="number" name="max_queue" value="{{ node.max_queue if node else 1 }}"><br></br>
+
+    <label>Priority</label><br>
+    <input type="number" name="priority" value="{{ node.priority if node else 10 }}"><br><br>
+
+    <button type="submit">Save</button>
+</form>
+
+<p><a href="/admin/nodes"></a>← Back</p>
+
+{% endblock %}

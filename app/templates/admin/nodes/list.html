@@ -1,0 +1,62 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+
+<h2>ComfyUI Nodes</h2>
+
+<p>Надо добавить ручное "отключение" сервера</p>
+
+<br><br>
+
+<a href="/admin/nodes/create">➕ Add node</a>
+
+<br><br><br>
+
+<table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Base Url</th>
+            <th>Max Queue</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Last heartbeat</th>
+            <th>Actions</th>
+            <th>Edit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for n in nodes %}
+
+            <tr>
+                <td>{{ n.id }}</td>
+                <td>{{ n.name }}</td>
+                <td>{{ n.base_url }}</td>
+                <td>{{ n.max_queue }}</td>
+                <td>{{ n.priority }}</td>
+                <td>
+                    {% if n.is_active %}
+                        🟢 Online
+                    {% else %}
+                        🔴 Offline
+                    {% endif %}
+                </td>
+                <td>{{ n.last_seen }}</td>
+                <td>
+                    <Form method="post" action="/admin/nodes/{{ n.id }}/toggle" style="display: inline">
+                        <button type="submit">
+                            {{ "Disable" if n.is_active else "Enable" }}
+                        </button>
+                    </Form>
+                </td>
+                <td>
+                    <a href="/admin/nodes/{{ n.id }}/edit">Edit</a>
+                </td>
+            </tr>
+
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

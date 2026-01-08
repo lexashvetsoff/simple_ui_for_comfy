@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<h2>Edit workflow: {{ workflow.name }}</h2>
+
+<form method="post" action="/admin/workflows/{{ workflow.id }}/generate_spec" style="margin-bottom: 16px">
+    <button type="submit" 
+            onclick="return confirm('Generate spec from workflow JSON? Existing spec will be overwritten.')">
+        ⚙️ Generate Spec
+    </button>
+</form>
+
+<form method="post" action="/admin/workflows/{{ workflow.id }}/edit">
+    <label>Spec JSON</label><br>
+    <textarea name="spec_json" rows="16" cols="90">{{ workflow.spec_json | tojson(indent=2) }}</textarea><br><br>
+
+    <button type="submit">Save</button>
+</form>
+
+<p><a href="/admin/workflows">← Back</a></p>
+
+{% endblock %}

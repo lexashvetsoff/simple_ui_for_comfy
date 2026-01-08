@@ -1,0 +1,106 @@
+{
+  "meta": {
+    "version": "2.0",
+    "title": "Flux Text to Image",
+    "description": "Simple text-to-image generation using Flux"
+  },
+
+  "modes": [
+    {
+      "id": "default",
+      "label": "Default"
+    }
+  ],
+
+  "inputs": {
+    "text": [
+      {
+        "key": "prompt",
+        "label": "Prompt",
+        "type": "text",
+        "required": true,
+        "default": "red car",
+        "binding": {
+          "node_id": "6",
+          "field": "text"
+        }
+      }
+    ],
+
+    "params": [
+      {
+        "key": "width",
+        "label": "Width",
+        "type": "int",
+        "min": 256,
+        "max": 2048,
+        "step": 64,
+        "default": 1024,
+        "binding": {
+          "node_id": "11",
+          "field": "width"
+        }
+      },
+      {
+        "key": "height",
+        "label": "Height",
+        "type": "int",
+        "min": 256,
+        "max": 2048,
+        "step": 64,
+        "default": 1024,
+        "binding": {
+          "node_id": "11",
+          "field": "height"
+        }
+      },
+      {
+        "key": "steps",
+        "label": "Steps",
+        "type": "int",
+        "min": 1,
+        "max": 100,
+        "default": 20,
+        "binding": {
+          "node_id": "8",
+          "field": "steps"
+        }
+      },
+      {
+        "key": "sampler",
+        "label": "Sampler",
+        "type": "select",
+        "options": ["euler", "euler_a", "dpmpp_2m"],
+        "default": "euler",
+        "binding": {
+          "node_id": "1",
+          "field": "sampler_name"
+        }
+      },
+      {
+        "key": "seed",
+        "label": "Seed",
+        "type": "int",
+        "randomizable": true,
+        "binding": {
+          "node_id": "10",
+          "field": "noise_seed"
+        }
+      }
+    ],
+
+    "images": [],
+    "mask": null
+  },
+
+  "outputs": [
+    {
+      "key": "image",
+      "type": "image",
+      "binding": {
+        "node_id": "12",
+        "field": "images"
+      }
+    }
+  ]
+}

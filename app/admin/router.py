@@ -1,3 +1,5 @@
+import uuid
+import json
 from enum import Enum
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -10,9 +12,12 @@ from app.core.templates import templates
 from app.models.user import User
 from app.models.user_limits import UserLimits
 from app.models.comfy_node import ComfyNode
+from app.models.workflow import Workflow
 from app.core.security import verify_password
 from app.core.jwt import create_access_token
 from app.core.security import hash_password
+from app.services.workflow_spec_validator import validate_workflow_spec
+from app.services.spec_generator import generate_spec_v2
 
 
 router = APIRouter(prefix='/admin', tags=['admin-ui'])
@@ -359,5 +364,238 @@ async def admin_node_toggle(
 
     return RedirectResponse(
         url='/admin/nodes',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.get('/workflows', response_class=HTMLResponse)
+async def admin_workflow_list(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    result = await db.execute(select(Workflow).order_by(Workflow.created_at.desc()))
+    workflows = result.scalars().all()
+
+    return templates.TemplateResponse(
+        '/admin/workflows/list.html',
+        {
+            'request': request,
+            'user': admin,
+            'workflows': workflows 
+        }
+    )
+
+
+@router.post('/workflows/{workflow_id}/toggle')
+async def admin_workflow_toggle(
+    workflow_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    result = await db.execute(select(Workflow).where(Workflow.id == workflow_id))
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail='Workflow not found')
+    
+    workflow.is_active = not workflow.is_active
+    await db.commit()
+
+    return RedirectResponse(
+        url='/admin/workflows',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.get('/workflows/upload', response_class=HTMLResponse)
+async def admin_workflow_upload_page(
+    request: Request,
+    admin: User = Depends(require_admin)
+):
+    return templates.TemplateResponse(
+        '/admin/workflows/upload.html',
+        {
+            'request': request,
+            'user': admin
+        }
+    )
+
+
+@router.post('/workflows/upload')
+async def admin_workflow_upload(
+    name: str = Form(...),
+    slug: str = Form(...),
+    category: str = Form(...),
+    spec_json: str = Form(...),
+    workflow_json: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    try:
+        spec = json.loads(spec_json)
+        workflow_data = json.loads(workflow_json)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail='Invalid JSON')
+    
+    parsed_spec = validate_workflow_spec(spec)
+
+    workflow = Workflow(
+        id=uuid.uuid4().hex,
+        name=name,
+        slug=slug,
+        category=category,
+        version=parsed_spec.version,
+        is_active=True,
+        requires_mask=bool(parsed_spec.inputs.mask),
+        spec_json=spec,
+        workflow_json=workflow_data
+    )
+
+    db.add(workflow)
+    await db.commit()
+
+    return RedirectResponse(
+        url='/admin/workflows',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.get('/workflows/{workflow_id}/edit', response_class=HTMLResponse)
+async def admin_workflow_edit_page(
+    workflow_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    result = await db.execute(select(Workflow).where(Workflow.id == workflow_id))
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    return templates.TemplateResponse(
+        '/admin/workflows/edit.html',
+        {
+            'request': request,
+            'user': admin,
+            'workflow': workflow
+        }
+    )
+
+
+@router.post('/workflows/{workflow_id}/edit')
+async def admin_workflow_edit(
+    workflow_id: str,
+    spec_json: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    result = await db.execute(select(Workflow).where(Workflow.id == workflow_id))
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail='Workflow not found')
+    
+    try:
+        spec = json.loads(spec_json)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail='Invalid JSON')
+    
+    parced_spec = validate_workflow_spec(spec)
+
+    workflow.spec_json = spec
+    workflow.version = parced_spec.version
+    workflow.requires_mask = bool(parced_spec.inputs.mask)
+
+    await db.commit()
+
+    return RedirectResponse(
+        url='/admin/workflows',
+        status_code=HTTP_302_FOUND
+    )
+
+
+@router.post('/workflows/upload/generate_spec', response_class=HTMLResponse)
+async def admin_workflow_upload_generate_spec(
+    request: Request,
+    workflow_json: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    print('This is...')
+    try:
+        workflow_data = json.loads(workflow_json)
+    except json.JSONDecodeError:
+        return templates.TemplateResponse(
+            '/admin/workflows/upload.html',
+            {
+                'request': request,
+                'user': admin,
+                'error': 'Invalid workflow JSON',
+                'workflow_json': workflow_json,
+            },
+            status_code=400
+        )
+    print('load json...')
+    
+    # Генерация spec
+    spec = generate_spec_v2(workflow_data)
+    print('generate spec')
+
+    try:
+        validate_workflow_spec(spec)
+    except HTTPException as e:
+        return templates.TemplateResponse(
+            '/admin/workflows/upload.html',
+            {
+                'request': request,
+                'user': admin,
+                'error': e.detail,
+                'workflow_json': workflow_json,
+                'spec_json': json.dumps(spec, indent=2),
+            },
+            status_code=400
+        )
+    print('validate spec')
+    
+    return templates.TemplateResponse(
+        '/admin/workflows/upload.html',
+        {
+            'request': request,
+            'user': admin,
+            'workflow_json': workflow_json,
+            # 'spec_json': json.dumps(spec, indent=2),
+            'spec_json': spec,
+        }
+    )
+
+
+@router.post('/workflows/{workflow_id}/generate_spec')
+async def admin_workflow_generate_spec(
+    workflow_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    result = await db.execute(select(Workflow).where(Workflow.id == workflow_id))
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail='Workflow not found')
+    
+    # Генерация Spec v2
+    spec = generate_spec_v2(workflow.workflow_json)
+
+    # Валидация (важно!)
+    validate_workflow_spec(spec)
+
+    workflow.spec_json = spec
+    workflow.version = spec['meta']['version']
+    workflow.requires_mask = bool(spec['inputs'].get('mask'))
+
+    await db.commit()
+
+    return RedirectResponse(
+        url=f'/admin/workflows/{workflow.id}/edit',
         status_code=HTTP_302_FOUND
     )

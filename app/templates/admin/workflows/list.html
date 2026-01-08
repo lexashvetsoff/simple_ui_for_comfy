@@ -1,0 +1,48 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+
+<h2>Workflows</h2>
+
+<a href="/admin/workflows/upload">➕ Upload workflow</a>
+
+<br><br><br>
+
+<table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Version</th>
+            <th>Category</th>
+            <th>Active</th>
+            <th>Requires mask</th>
+            <th>Created</th>
+            <th>Actions</th>
+            <th>Edit</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for w in workflows %}
+        <tr>
+            <td>{{ w.name }}</td>
+            <td>{{ w.slug }}</td>
+            <td>{{ w.version }}</td>
+            <td>{{ w.category or "-" }}</td>
+            <td>{{ "Yes" if w.is_active else "No" }}</td>
+            <td>{{ "Yes" if w.requires_mask else "No" }}</td>
+            <td>{{ w.created_at }}</td>
+            <td>
+                <form method="post" action="/admin/workflows/{{ w.id }}/toggle" style="display: inline">
+                    <button type="submit">
+                        {{ "Disable" if w.is_active else "Enable" }}
+                    </button>
+                </form>
+            </td>
+            <td><a href="/admin/workflows/{{ w.id }}/edit">Edit</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

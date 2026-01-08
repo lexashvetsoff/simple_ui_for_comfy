@@ -53,6 +53,8 @@ def create_app() -> FastAPI:
     def health_check():
         return {'status': 'Ok'}
     
+    app.include_router(ui_router)
+    app.include_router(user_router)
     app.include_router(auth_router)
     app.include_router(admin_users_router, prefix=settings.API_V1_STR)
     app.include_router(user_limits_router, prefix=settings.API_V1_STR)
@@ -61,8 +63,6 @@ def create_app() -> FastAPI:
     app.include_router(workflows_router, prefix=settings.API_V1_STR)
     app.include_router(admin_router)
     app.include_router(admin_jobs_router)
-    app.include_router(user_router)
-    app.include_router(ui_router)
     
     logger.info('Application started')
     return app

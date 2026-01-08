@@ -7,9 +7,15 @@
     <link rel="stylesheet" href="/static/user/user.css">
 </head>
 <body>
-    <header>
-        <h1>User Panel</h1>
 
+    <header>
+        <h1>ComfyUI Admin</h1>
+        <div class="user">
+            {{ user.email }}
+        </div>
+    </header>
+
+    <div class="container"></div>
         <nav>
             <ul>
                 <li><a href="/user">Workflows</a></li>
@@ -17,9 +23,6 @@
                 <li><a href="/auth/logout">Logout</a></li>
             </ul>
         </nav>
-    </header>
-
-    <div class="container"></div>
         
         <main>
             {% block content %}{% endblock %}

@@ -2,21 +2,32 @@
 
 {% block content %}
 
-<h2>Welcome, {{ user.email }}</h2>
+<h1>Available workflows</h1>
 
-<p>
-    Here you will be able to:
-</p>
+{% for category, workflows in grouped_workflows.items() %}
 
-<ul>
-    <li>Select workflows by category</li>
-    <li>Run workflows</li>
-    <li>Track progress</li>
-    <li>View result</li>
-</ul>
+    <h2>{{ category }}</h2>
 
-<p>
-    🚧 Workflows list coming next.
-</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+        {% for wf in workflows %}
+
+            <div style="background: white; padding: 15px; width: 260px; border-radius: 6px;">
+                <h3>{{ wf.name }}</h3>
+
+                <p style="font-size: 14px; color: #555;">
+                    {{ wf.spec_json.meta.description if wf.spec_json.meta }}
+                </p>
+
+                <small>Version: {{ wf.version }}</small><br><br>
+
+                <a href="/user/workflows/{{ wf.slug }}">
+                    <button>Run</button>
+                </a>
+            </div>
+
+        {% endfor %}
+    </div>
+
+{% endfor %}
 
 {% endblock %}

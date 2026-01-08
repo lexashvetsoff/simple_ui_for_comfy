@@ -1,0 +1,38 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+
+<h2>Jobs</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Workflow</th>
+            <th>Slug</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job, user, workflow in jobs %}
+            <tr>
+                <td>{{ job.id[:8] }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ workflow.name }}</td>
+                <td>{{ workflow.slug }}</td>
+                <td>{{ job.status }}</td>
+                <td>{{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td><a href="/admin/jobs/{{ job.id }}">View</a></td>
+            </tr>
+        {% else %}
+            <tr>
+                <td>No jobs yet</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

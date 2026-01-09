@@ -1,0 +1,55 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+
+<h1>Job: {{ job.id }}</h1>
+
+<div id="job_status">
+    Status: <strong>{{ job.status }}</strong>
+</div>
+
+<div id="job_error" style="color: red;"></div>
+
+<div id="job_results"></div>
+
+<script>
+    const jobId = "{{ job.id }}"
+
+    async function poll() {
+        const res = await fetch(`/user/jobs/${jobId}/state`);
+        const data = await res.json();
+
+        document.getElementById("job_status").innerText = data.status;
+
+        if (data.status === "ERROR") {
+            document.getElementById("job_error").innerText = data.error || "Job failed";
+            return
+        }
+
+        if (data.status === "DONE") {
+            renderResult(data.result);
+            return
+        }
+
+        setTimeout(poll, 1000);
+    }
+
+    function renderResult(result) {
+        if (!result || !result.images) return;
+
+        const container = document.getElementById("job_result");
+        container.innerHTML = "";
+
+        result.images.forEach(src => {
+            const img = document.createElement("img");
+            img.src = src;
+            img.style.maxWidth = "512px";
+            img.style.display = "block";
+            container.appendChild(img);
+        });
+    }
+
+    poll();
+</script>
+
+{% endblock %}

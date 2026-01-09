@@ -21,6 +21,7 @@ from app.admin.jobs_router import router as admin_jobs_router
 from app.user.router import router as user_router
 from app.ui.router import router as ui_router
 from app.user.workflows_router import router as user_workflow_router
+from app.user.jobs_router import router as user_jobs_router
 
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     )
 
     app.mount('/static', StaticFiles(directory='app/static'), name='static')
+    app.mount('/storage', StaticFiles(directory=settings.STORAGE_ROOT), name='storage')
 
     @app.get('/health', tags=['system'])
     def health_check():
@@ -65,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(admin_jobs_router)
     app.include_router(user_workflow_router)
+    app.include_router(user_jobs_router)
     
     logger.info('Application started')
     return app

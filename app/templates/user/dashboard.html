@@ -1,33 +1,41 @@
 {% extends "user/base.html" %}
 
 {% block content %}
+<h1>Dashboard</h1>
 
-<h1>Available workflows</h1>
+<h2>Workflows</h2>
 
-{% for category, workflows in grouped_workflows.items() %}
-
-    <h2>{{ category }}</h2>
-
-    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-        {% for wf in workflows %}
-
-            <div style="background: white; padding: 15px; width: 260px; border-radius: 6px;">
-                <h3>{{ wf.name }}</h3>
-
-                <p style="font-size: 14px; color: #555;">
-                    {{ wf.spec_json.meta.description if wf.spec_json.meta }}
-                </p>
-
-                <small>Version: {{ wf.version }}</small><br><br>
-
-                <a href="/user/workflows/{{ wf.slug }}">
-                    <button>Run</button>
-                </a>
-            </div>
-
-        {% endfor %}
-    </div>
-
+{% for category, workflows in workflows_by_category.items() %}
+  <h3>{{ category }}</h3>
+  <ul>
+    {% for wf in workflows %}
+      <li>
+        {{ wf.name }}
+        <a href="/user/workflows/{{ wf.slug }}">Run</a>
+      </li>
+    {% endfor %}
+  </ul>
 {% endfor %}
 
+<hr>
+
+<h2>Recent jobs</h2>
+
+<table>
+  <tr>
+    <th>Workflow</th>
+    <th>Status</th>
+    <th></th>
+  </tr>
+
+  {% for job in jobs %}
+    <tr>
+      <td>{{ job.workflow_id }}</td>
+      <td>{{ job.status }}</td>
+      <td>
+        <a href="/user/jobs/{{ job.id }}">View</a>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
 {% endblock %}

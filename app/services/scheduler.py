@@ -8,7 +8,6 @@ from app.models.job_execution import JobExecution
 from app.models.comfy_node import ComfyNode
 from app.services.comfy_client import submit_workflow
 from app.services.comfy_client import get_prompt_result
-from app.services.job_service import handle_execution_result
 
 
 async def select_avilable_node(
@@ -133,6 +132,8 @@ async def poll_running_executions(
         node = await db.get(ComfyNode, execution.node_id)
         if not node:
             continue
+
+        from app.services.job_service import handle_execution_result
 
         try:
             outputs = await get_prompt_result(node=node, prompt_id=execution.prompt_id)

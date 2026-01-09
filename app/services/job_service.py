@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.scheduler import enqueue_job
 from app.models.job import Job
 from app.models.job_execution import JobExecution
 
@@ -8,7 +7,7 @@ async def create_job(
         *,
         db: AsyncSession,
         job: Job
-):
+): 
     """
     Хук после создания Job (intent).
     """
@@ -32,6 +31,7 @@ async def start_job(
     if job.status != 'QUEUED':
         return
     
+    from app.services.scheduler import enqueue_job
     await enqueue_job(db=db, job=job)
 
 

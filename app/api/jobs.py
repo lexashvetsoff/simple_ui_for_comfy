@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.workflow import Workflow
 from app.schemas.job import JobCreateRequest, JobResponse
 from app.services.workflow_mapper import map_inputs_to_workflow
+from app.services.workflow_mapper import normalize_workflow_for_comfy
 from app.services.storage import save_uploaded_files
 
 
@@ -57,6 +58,7 @@ async def create_job(
         uploaded_files=files,
         mode=payload.mode
     )
+    prepared_workflow = normalize_workflow_for_comfy(prepared_workflow)
 
     # 5. Создаём Job (intent)
     job = Job(

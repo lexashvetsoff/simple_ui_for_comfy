@@ -13,6 +13,7 @@ from app.core.templates import templates
 from app.services.limits import check_daily_job_limit
 from app.services.storage import save_uploaded_files
 from app.services.workflow_mapper import map_inputs_to_workflow
+from app.services.workflow_mapper import normalize_workflow_for_comfy
 from app.services.scheduler import enqueue_job
 from app.schemas.workflow_spec_v2 import WorkflowSpecV2
 
@@ -110,6 +111,7 @@ async def run_workflow(
         param_inputs=param_inputs,
         uploaded_files=stored_files
     )
+    workflow_payload = normalize_workflow_for_comfy(workflow_payload)
 
     # 6. Create job
     job = Job(

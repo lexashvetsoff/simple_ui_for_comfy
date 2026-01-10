@@ -8,6 +8,7 @@ from app.models.job_execution import JobExecution
 from app.models.comfy_node import ComfyNode
 from app.services.comfy_client import submit_workflow
 from app.services.comfy_client import get_prompt_result
+from app.services.comfy_prompt_builder import build_prompt_from_ui_workflow
 
 
 async def select_avilable_node(
@@ -78,10 +79,12 @@ async def scheduler_tick(
         await db.refresh(execution)
 
         # 4. Отправляем в ComfyUI
+        prompt = build_prompt_from_ui_workflow(job.prepared_workflow)
         try:
             prompt_id = await submit_workflow(
                 node=node,
-                workflow=job.prepared_workflow
+                # workflow=job.prepared_workflow
+                workflow=prompt
             )
 
             execution.prompt_id = prompt_id

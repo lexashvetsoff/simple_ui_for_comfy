@@ -12,86 +12,141 @@ from app.schemas.workflow_spec_v2 import (
 )
 
 
-# def apply_binding(
-#         workflow: dict,
-#         binding: BindingSpec,
-#         value: Any
-# ):
-#     try:
-#         workflow['nodes'][binding.node_id]['inputs'][binding.field] = value
-#     except KeyError:
-#         raise HTTPException(
-#             status_code=400,
-#             detail=(
-#                 f"Invalid binding: node '{binding.node_id}' "
-#                 f"or field '{binding.field}' not found in workflow"
-#             )
-#         )
-
-
-def apply_binding(
-        workflow: dict,
-        binding: BindingSpec,
-        value: Any
-):
+def normalize_workflow_for_comfy(workflow: dict) -> dict:
     """
-    Универсальное применение binding к ComfyUI workflow.
-    Поддерживает:
-    - nodes: list
-    - inputs: dict | list
-    - field: str | int | widget_*
+    Converts ComfyUI UI-exported workflow to API-ready prompt format.
+    """
+    for node in workflow.get('nodes', []):
+        # UI uses "type", API requires "class_type"
+        if 'class_type' not in node:
+            node['class_type'] = node.get('type')
+    
+    return workflow
+
+
+def _find_node(nodes: list[dict], node_id: int) -> dict | None:
+    return next((n for n in nodes if n.get("id") == node_id), None)
+
+
+def _ensure_list_size(lst: list, index: int) -> None:
+    while len(lst) <= index:
+        lst.append(None)
+
+
+def _widget_index(field: Any) -> int | None:
+    """
+    Accepts:
+      - "widget_0"
+      - "0"
+      - 0
+    Returns int index or None.
+    """
+    if isinstance(field, int):
+        return field
+
+    if isinstance(field, str):
+        if field.isdigit():
+            return int(field)
+        m = re.match(r"^widget_(\d+)$", field.strip())
+        if m:
+            return int(m.group(1))
+
+    return None
+
+
+def _try_set_nth_literal_in_inputs(node_inputs: list, widget_idx: int, value: Any) -> None:
+    """
+    In some ComfyUI UI-workflows, widget values are duplicated as literals
+    inside node["inputs"] list (e.g. ["red car", {...}]).
+    But inputs list can also contain dicts for linked ports.
+    We map widget index to the Nth literal item (non-dict) in inputs.
+    """
+    literal_positions = [i for i, v in enumerate(node_inputs) if not isinstance(v, dict)]
+    if widget_idx < 0 or widget_idx >= len(literal_positions):
+        return
+    pos = literal_positions[widget_idx]
+    node_inputs[pos] = value
+
+
+def apply_binding(workflow: dict, binding: BindingSpec, value: Any) -> None:
+    """
+    Apply a BindingSpec onto ComfyUI UI-workflow structure.
+
+    Supports:
+      - node["inputs"] as dict (API-ish style)
+      - node["inputs"] as list (UI style)
+      - widget bindings: field = "widget_N" -> writes into node["widgets_values"][N]
     """
     nodes = workflow.get("nodes")
     if not isinstance(nodes, list):
-        raise ValueError("workflow['nodes'] must be a list")
+        raise HTTPException(status_code=400, detail="workflow['nodes'] must be a list")
 
-    node_id = int(binding.node_id)
+    try:
+        node_id_int = int(binding.node_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Invalid node_id in binding: {binding.node_id}")
 
-    node = next((n for n in nodes if n.get("id") == node_id), None)
+    node = _find_node(nodes, node_id_int)
     if node is None:
-        raise KeyError(f"Node with id={node_id} not found")
-
-    inputs = node.get("inputs")
-    if inputs is None:
-        return  # nothing to bind
+        raise HTTPException(status_code=400, detail=f"Node with id={node_id_int} not found")
 
     field = binding.field
 
-    # ───────────── dict inputs ─────────────
-    if isinstance(inputs, dict):
-        inputs[str(field)] = value
-        return
+    node_inputs = node.get("inputs")
+    widgets_values = node.get("widgets_values")
 
-    # ───────────── list inputs ─────────────
-    if isinstance(inputs, list):
-        index = None
-
-        # field = int
-        if isinstance(field, int):
-            index = field
-
-        # field = "0"
-        elif isinstance(field, str) and field.isdigit():
-            index = int(field)
-
-        # field = "widget_0"
-        elif isinstance(field, str):
-            m = re.search(r'(\d+)$', field)
-            if m:
-                index = int(m.group(1))
-
-        # если индекс определить нельзя — это не runtime input
-        if index is None:
+    # ------------------------------------------------------------
+    # 1) widget binding: write into widgets_values[widget_idx]
+    # ------------------------------------------------------------
+    if isinstance(field, str) and field.startswith("widget_"):
+        widx = _widget_index(field)
+        if widx is None:
             return
 
-        # расширяем список при необходимости
-        while len(inputs) <= index:
-            inputs.append(None)
+        if not isinstance(widgets_values, list):
+            node["widgets_values"] = []
+            widgets_values = node["widgets_values"]
 
-        inputs[index] = value
+        _ensure_list_size(widgets_values, widx)
+        widgets_values[widx] = value
+
+        # optional: also update literal duplication in node_inputs list
+        if isinstance(node_inputs, list):
+            _try_set_nth_literal_in_inputs(node_inputs, widx, value)
+
         return
 
-    raise TypeError(f"Unsupported inputs type: {type(inputs)}")
+    # ------------------------------------------------------------
+    # 2) dict inputs: simple field name set
+    # ------------------------------------------------------------
+    if isinstance(node_inputs, dict):
+        # binding.field must be the actual input name ("text", "width", etc)
+        node_inputs[str(field)] = value
+        return
+
+    # ------------------------------------------------------------
+    # 3) list inputs: can be:
+    #    - literals
+    #    - dicts describing ports with link/widget metadata
+    #    Here, "0"/0 means widget index, not port index.
+    # ------------------------------------------------------------
+    if isinstance(node_inputs, list):
+        widx = _widget_index(field)
+        if widx is None:
+            # if someone passed non-widget field for list-inputs — ignore safely
+            return
+
+        # Prefer widgets_values if present (UI truth source)
+        if isinstance(widgets_values, list):
+            _ensure_list_size(widgets_values, widx)
+            widgets_values[widx] = value
+
+        # Also try update literal duplication
+        _try_set_nth_literal_in_inputs(node_inputs, widx, value)
+        return
+
+    # unknown structure
+    return
 
 
 def map_inputs_to_workflow(
@@ -109,17 +164,18 @@ def map_inputs_to_workflow(
     modes = {m.id for m in spec.modes}
     if mode not in modes:
         raise HTTPException(status_code=400, detail=f'Invalid mode "{mode}", available: {modes}')
-    
-    # TEXT
-    for inp in spec.inputs.text:
-        if inp.key not in text_inputs:
-            continue
-        if not inp.binding:
-            continue
 
-        apply_binding(workflow, inp.binding, text_inputs[inp.key])
-    
-    # PARAMS
+    # ------------------------------------------------------------
+    # 0) Build protected bindings: anything that is TEXT must not be overwritten by PARAMS
+    # ------------------------------------------------------------
+    protected = set()
+    for t in spec.inputs.text:
+        if t.binding:
+            protected.add((str(t.binding.node_id), str(t.binding.field)))
+
+    # ------------------------------------------------------------
+    # 1) PARAMS (first) — but don't overwrite TEXT bindings
+    # ------------------------------------------------------------
     for param in spec.inputs.params:
         value = param_inputs.get(param.key, param.default)
         if value is None or not param.binding:
@@ -130,10 +186,18 @@ def map_inputs_to_workflow(
             if mode not in param.binding.map:
                 raise HTTPException(status_code=400, detail=f'Mode "{mode}" not supported for "{param.key}"')
             value = param.binding.map[mode]
-        
+
+        bkey = (str(param.binding.node_id), str(param.binding.field))
+        if bkey in protected:
+            # This param targets the same place as a TEXT input (e.g., node 6 widget_0)
+            # Skip it so TEXT controls this binding.
+            continue
+
         apply_binding(workflow, param.binding, value)
-    
-    # IMAGES
+
+    # ------------------------------------------------------------
+    # 2) IMAGES
+    # ------------------------------------------------------------
     for img in spec.inputs.images:
         if img.modes and mode not in img.modes:
             continue
@@ -141,113 +205,24 @@ def map_inputs_to_workflow(
             continue
         if not img.binding:
             continue
-
         apply_binding(workflow, img.binding, uploaded_files[img.key])
-    
-    # MASK
+
+    # ------------------------------------------------------------
+    # 3) MASK
+    # ------------------------------------------------------------
     if spec.inputs.mask:
         mask = spec.inputs.mask
         if mask.key in uploaded_files and mask.binding:
             apply_binding(workflow, mask.binding, uploaded_files[mask.key])
-    
+
+    # ------------------------------------------------------------
+    # 4) TEXT (last) — final authority
+    # ------------------------------------------------------------
+    for inp in spec.inputs.text:
+        if inp.key not in text_inputs:
+            continue
+        if not inp.binding:
+            continue
+        apply_binding(workflow, inp.binding, text_inputs[inp.key])
+
     return workflow
-
-
-# def map_inputs_to_workflow(
-#         *,
-#         workflow_json: dict,
-#         spec: WorkflowSpecV2,
-#         user_inputs: Dict[str, Any],
-#         uploaded_files: Dict[str, Any],
-#         mode: str
-# ) -> dict:
-#     """
-#     Создаёт новый workflow_json с подставленными значениями
-#     на основе Spec v2 и пользовательского ввода.
-
-#     uploaded_files:
-#         image_key -> filepath (или список путей)
-#     """
-#     # 1. Клонируем workflow (оригинал НЕ ТРОГАЕМ)
-#     workflow = deepcopy(workflow_json)
-
-#     # 2. Проверка mode
-#     available_modes = {m.id for m in spec.modes}
-#     if mode not in available_modes:
-#         raise HTTPException(status_code=400, detail=f"Invalid mode '{mode}', available: {available_modes}")
-    
-#     # 3. TEXT inputs
-#     for text_input in spec.inputs.text:
-#         if text_input.key not in user_inputs:
-#             continue
-
-#         if not hasattr(text_input, 'binding') or text_input.binding is None:
-#             continue
-
-#         apply_binding(
-#             workflow,
-#             text_input.binding,
-#             user_inputs[text_input.key]
-#         )
-    
-#     # 4. PARAM inputs (int / float / bool)
-#     for param in spec.inputs.params:
-#         if param.key in user_inputs:
-#             value = user_inputs[param.key]
-#         else:
-#             value = param.default
-        
-#         if value is None:
-#             continue
-
-#         if not hasattr(param, 'binding') or param.binding is None:
-#             continue
-
-#         # mode → Any Switch mapping
-#         if param.binding.map:
-#             if mode not in param.binding.map:
-#                 raise HTTPException(status_code=400, detail=f"Mode '{mode}' not supported for '{param.key}'")
-#             value = param.binding.map[mode]
-        
-#         apply_binding(
-#             workflow,
-#             param.binding,
-#             value
-#         )
-    
-#     # 5. IMAGE inputs
-#     for image_input in spec.inputs.images:
-#         if image_input.modes and mode not in image_input.modes:
-#             continue
-
-#         if image_input.key not in uploaded_files:
-#             continue
-
-#         if not hasattr(image_input, 'binding') or image_input.binding is None:
-#             continue
-
-#         value = uploaded_files[image_input.key]
-
-#         apply_binding(
-#             workflow,
-#             image_input.binding,
-#             value
-#         )
-    
-#     # 6. MASK input
-#     if spec.inputs.mask:
-#         mask = spec.inputs.mask
-
-#         if mask.modes and mode not in mask.modes:
-#             pass
-#         elif mask.key in uploaded_files:
-#             if not hasattr(mask, 'binding') or mask.binding is None:
-#                 pass
-#             else:
-#                 apply_binding(
-#                     workflow,
-#                     mask.binding,
-#                     uploaded_files[mask.key]
-#                 )
-    
-#     return workflow

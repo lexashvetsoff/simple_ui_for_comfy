@@ -9,6 +9,7 @@ from app.core.logging import setup_logging
 from app.db.session import AsyncSessionLocal
 from app.core.bootstrap import create_initial_admin
 from app.services.comfy_health import healthcheck_loop
+from app.services.scheduler_loop import scheduler_loop
 
 from app.api.auth import router as auth_router
 from app.api.admin.users import router as admin_users_router
@@ -31,11 +32,13 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as session:
         await create_initial_admin(session)
     
-    task = asyncio.create_task(healthcheck_loop())
+    health_task = asyncio.create_task(healthcheck_loop())
+    scheduler_task = asyncio.create_task(scheduler_loop())
     
     yield
 
-    task.cancel()
+    health_task.cancel()
+    scheduler_task.cancel()
 
     # SHUTDOWN
     # здесь можно закрывать соединения, если нужно

@@ -41,12 +41,61 @@ main {
     padding: 20px;
     border: 1px solid #ccc;
 }
+
 .login-box input {
     width: 100%;
     margin-bottom: 10px;
 }
+
 .error {
     color: red;
     margin-bottom: 10px;
+}
+
+.workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.workflow-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.workflow-badges,
+.workflow-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.badge {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #eee;
+}
+
+.complexity-simple { color: green; }
+.complexity-medium { color: orange; }
+.complexity-advanced { color: red; }
+
+.workflow-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 

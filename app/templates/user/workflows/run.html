@@ -6,67 +6,88 @@
 <p>{{ spec.meta.description }}</p>
 
 <form method="post" action="/user/workflows/{{ workflow.slug }}/run" enctype="multipart/form-data">
-    <!-- TEXT INPUTS -->
-    {% for inp in spec.inputs.text %}
 
-    <div>
-        <label>{{ inp.label }}</label><br>
-        <textarea 
-            name="text__{{ inp.key }}" 
-            required="{{ inp.required | default(false) }}"
-            rows="3"
-            style="width: 100%">{{ inp.default | default("") }}</textarea>
-    </div>
-    <br>
+    {% for g in groups %}
+        <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+            <h3 style="margin: 0 0 10px 0;">{{ g.label }}</h3>
 
-    {% endfor %}
+            {# TEXT #}
+            {% for inp in g.text %}
+                {% if inp.view != 'no_view' %}
+                    <div style="margin-bottom: 14px;">
+                        <label><b>{{ inp.label }}</b></label><br>
+                        <textarea
+                            name="text__{{ inp.key }}"
+                            rows="4"
+                            style="width: 100%;"
+                            {% if inp.required %}required{% endif %}
+                        >{{ inp.default | default("") }}</textarea>
+                    </div>
+                {% else %}
+                    <input type="hidden" name="text__{{ inp.key }}" value="{{ inp.default | default('') }}">
+                {% endif %}
+            {% endfor %}
 
-    <!-- PARAM INPUTS -->
-    {% for p in spec.inputs.params %}
+            {# PARAMS visible #}
+            {% for p in g.params_view %}
+                <div style="margin-bottom: 12px;">
+                    <label><b>{{ p.label }}</b></label><br>
+                    {% if p.type == 'text' %}
+                        <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
+                    {% else %}
+                        <input type="number" name="param__{{ p.key }}" value="{{ p.default }}" step="any" style="width: 220px;">
+                    {% endif %}
+                </div>
+            {% endfor %}
 
-        <div>
-            <label>{{ p.label }}</label><br>
-            <input 
-                type="{{ 'number' if p.type != 'text' else 'text' }}"
-                name="param__{{ p.key }}"
-                value="{{ p.default }}"
-                style="width: 200px">
+            {# PARAMS hidden in accordion #}
+            {% if g.params_hidden and g.params_hidden|length > 0 %}
+                <details style="margin-top: 12px; padding: 10px; border: 1px dashed #ddd; border-radius: 10px;">
+                    <summary style="cursor: pointer; font-weight: 600;">
+                        Advanced settings ({{ g.params_hidden|length }})
+                    </summary>
+
+                    <div style="margin-top: 12px;">
+                        {% for p in g.params_hidden %}
+                            <div style="margin-bottom: 12px;">
+                                <label>{{ p.label }}</label><br>
+                                {% if p.type == 'text' %}
+                                    <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
+                                {% else %}
+                                    <input type="number" name="param__{{ p.key }}" value="{{ p.default }}" step="any" style="width: 220px;">
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endif %}
+
+            {# PARAMS no_view -> hidden inputs to be sent #}
+            {% for p in g.params_no_view %}
+                <input type="hidden" name="param__{{ p.key }}" value="{{ p.default }}">
+            {% endfor %}
+
+            {# IMAGES #}
+            {% for img in g.images %}
+                {% if img.view != 'no_view' %}
+                    <div style="margin-top: 10px;">
+                        <label><b>{{ img.label }}</b></label><br>
+                        <input type="file" name="image__{{ img.key }}" accept="image/*" required>
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
-        <br>
-    
     {% endfor %}
 
-    <!-- IMAGE INPUTS -->
-    {% for img in spec.inputs.images %}
-
-        <div>
-            <label>{{ img.label }}</label><br>
-            <input 
-                type="file"
-                name="image__{{ img.key }}"
-                accept="image/*"
-                required>
-        </div>
-        <br>
-
-    {% endfor %}
-
-    <!-- MASK -->
+    {# MASK отдельно #}
     {% if spec.inputs.mask %}
-
-        <div>
-            <label>Mask</label>
-            <input 
-                type="file"
-                name="mask"
-                accept="image/*">
+        <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+            <h3 style="margin: 0 0 10px 0;">Mask</h3>
+            <input type="file" name="mask" accept="image/*">
         </div>
-        <br>
-
     {% endif %}
 
     <button type="submit">Run workflow</button>
-
 </form>
 
 {% endblock %}

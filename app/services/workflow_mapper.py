@@ -1,4 +1,5 @@
 import re
+import random
 from copy import deepcopy
 from typing import Dict, Any
 from fastapi import HTTPException
@@ -149,6 +150,40 @@ def apply_binding(workflow: dict, binding: BindingSpec, value: Any) -> None:
     return
 
 
+def _node_type(node: dict) -> str:
+    # ComfyUI UI-workflow обычно хранит type
+    # иногда у нас уже бывает class_type
+    t = node.get("class_type") or node.get("type") or ""
+
+    # на всякий случай: некоторые воркфлоу прячут название в properties
+    if not t:
+        props = node.get("properties") or {}
+        t = props.get("Node name for S&R") or ""
+
+    return str(t)
+
+
+def apply_random_seed_if_needed(workflow: dict):
+    nodes = workflow.get("nodes")
+    if not isinstance(nodes, list):
+        return
+
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+
+        if _node_type(node) != "RandomNoise":
+            continue
+
+        widgets = node.get("widgets_values")
+        if not isinstance(widgets, list) or len(widgets) < 2:
+            continue
+
+        mode = widgets[1]
+        if isinstance(mode, str) and mode.lower() == "randomize":
+            widgets[0] = random.randint(0, 2**63 - 1)
+
+
 def map_inputs_to_workflow(
         *,
         workflow_json: dict,
@@ -224,5 +259,7 @@ def map_inputs_to_workflow(
         if not inp.binding:
             continue
         apply_binding(workflow, inp.binding, text_inputs[inp.key])
+    
+    apply_random_seed_if_needed(workflow)
 
     return workflow

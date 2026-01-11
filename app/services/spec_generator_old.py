@@ -1,4 +1,3 @@
-import re
 from typing import Dict, Any, List
 
 
@@ -8,12 +7,10 @@ TEXT_NODE_TYPES = {
     "TextEncode",
 }
 
-
 IMAGE_NODE_TYPES = {
     "LoadImage",
     "LoadImageFromPath",
 }
-
 
 OUTPUT_NODE_TYPES = {
     "SaveImage",
@@ -21,50 +18,14 @@ OUTPUT_NODE_TYPES = {
 }
 
 
-IGNORED_FIELDS = {
-    "model",
-    "clip",
-    "vae",
-    "samples",
-    "latent",
-    "conditioning",
-}
-
-
-# def _normalize_nodes(workflow_json: Dict[str, Any]) -> List[Dict[str, Any]]:
-#     """
-#     ComfyUI workflow may store nodes as:
-#     - list (real-world case)
-#     - dict (theoretical / old case)
-
-#     We normalize everything to a list of node dicts.
-#     """
-#     nodes = workflow_json.get('nodes', [])
-
-#     if isinstance(nodes, list):
-#         return nodes
-    
-#     if isinstance(nodes, dict):
-#         return [
-#             {'id': k, **v} for k, v in nodes.items()
-#         ]
-    
-#     return []
-
-
-def _normalize_nodes(workflow_json: dict) -> list[dict]:
-    """
-    Normalize ComfyUI workflow into list of nodes
-    """
-    if isinstance(workflow_json, dict):
-        if "nodes" in workflow_json:
-            return workflow_json["nodes"]
+def _normalize_nodes(workflow_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if isinstance(workflow_json, dict) and "nodes" in workflow_json:
+        return workflow_json["nodes"]
 
     if isinstance(workflow_json, list):
         return workflow_json
 
     raise ValueError("Invalid workflow format: nodes not found")
-
 
 
 def generate_spec_v2(workflow_json: Dict[str, Any]) -> Dict[str, Any]:
@@ -90,28 +51,25 @@ def generate_spec_v2(workflow_json: Dict[str, Any]) -> Dict[str, Any]:
 
     for node in nodes:
         node_id = str(node.get("id"))
-        # class_type = node.get("type") or node.get("class_type", "")
         class_type = node.get("class_type") or node.get("type") or ""
-        inputs = node.get("inputs", {})
 
-        # IMPORTANT: only dict-inputs are UI-relevant
-        if not isinstance(inputs, dict):
-            continue
+        # ---------- TEXT INPUT ----------
+        if class_type in TEXT_NODE_TYPES:
+            widgets = node.get("widgets_values", [])
+            if widgets and isinstance(widgets[0], str):
+                spec["inputs"]["text"].append({
+                    "key": f"prompt_{node_id}",
+                    "label": "Prompt",
+                    "type": "text",
+                    "required": True,
+                    "default": widgets[0],
+                    "binding": {
+                        "node_id": node_id,
+                        "field": "widget_0",
+                    },
+                })
 
-        # TEXT INPUT
-        if class_type in TEXT_NODE_TYPES and "text" in inputs:
-            spec["inputs"]["text"].append({
-                "key": f"prompt_{node_id}",
-                "label": "Prompt",
-                "type": "text",
-                "required": True,
-                "binding": {
-                    "node_id": node_id,
-                    "field": "text",
-                },
-            })
-
-        # IMAGE INPUT
+        # ---------- IMAGE INPUT ----------
         if class_type in IMAGE_NODE_TYPES:
             spec["inputs"]["images"].append({
                 "key": f"image_{node_id}",
@@ -123,51 +81,32 @@ def generate_spec_v2(workflow_json: Dict[str, Any]) -> Dict[str, Any]:
                 },
             })
 
-        # PARAMS
-        for field, value in inputs.items():
-            if field in IGNORED_FIELDS:
-                continue
+        # ---------- PARAMS (widgets_values) ----------
+        widgets = node.get("widgets_values", [])
+        if isinstance(widgets, list):
+            for idx, value in enumerate(widgets):
+                if isinstance(value, (int, float, str)):
+                    spec["inputs"]["params"].append({
+                        "key": f"param_{node_id}_{idx}",
+                        "label": f"{class_type} param {idx + 1}",
+                        "type": (
+                            "int" if isinstance(value, int)
+                            else "float" if isinstance(value, float)
+                            else "text"
+                        ),
+                        "default": value,
+                        "binding": {
+                            "node_id": node_id,
+                            "field": f"widget_{idx}",
+                        },
+                    })
 
-            if isinstance(value, int):
-                spec["inputs"]["params"].append({
-                    "key": f"{field}_{node_id}",
-                    "label": field.replace("_", " ").title(),
-                    "type": "int",
-                    "default": value,
-                    "binding": {
-                        "node_id": node_id,
-                        "field": field,
-                    },
-                })
-
-            elif isinstance(value, float):
-                spec["inputs"]["params"].append({
-                    "key": f"{field}_{node_id}",
-                    "label": field.replace("_", " ").title(),
-                    "type": "float",
-                    "default": value,
-                    "binding": {
-                        "node_id": node_id,
-                        "field": field,
-                    },
-                })
-
-            elif isinstance(value, str):
-                spec["inputs"]["params"].append({
-                    "key": f"{field}_{node_id}",
-                    "label": field.replace("_", " ").title(),
-                    "type": "text",
-                    "default": value,
-                    "binding": {
-                        "node_id": node_id,
-                        "field": field,
-                    },
-                })
-
-    # OUTPUTS
+    # ---------- OUTPUTS ----------
     for node in nodes:
         node_id = str(node.get("id"))
-        if node.get("type") in OUTPUT_NODE_TYPES:
+        class_type = node.get("class_type") or node.get("type") or ""
+
+        if class_type in OUTPUT_NODE_TYPES:
             spec["outputs"].append({
                 "key": "image",
                 "type": "image",

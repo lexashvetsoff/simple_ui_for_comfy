@@ -16,6 +16,7 @@ from app.services.workflow_mapper import map_inputs_to_workflow
 from app.services.workflow_mapper import normalize_workflow_for_comfy
 from app.services.scheduler import enqueue_job
 from app.schemas.workflow_spec_v2 import WorkflowSpecV2
+from app.services.spec_grooping import prepare_spec_groups
 
 
 router = APIRouter(prefix='/user/workflows', tags=['user-workflows'])
@@ -39,13 +40,16 @@ async def workflow_run_page(
     if not workflow:
         raise HTTPException(status_code=404, detail='Workflow not found')
     
+    groups = prepare_spec_groups(spec=workflow.spec_json, workflow_json=workflow.workflow_json)
+    
     return templates.TemplateResponse(
         '/user/workflows/run.html',
         {
             'request': request,
             'user': user,
             'workflow': workflow,
-            'spec': workflow.spec_json
+            'spec': workflow.spec_json,
+            'groups': groups
         }
     )
 

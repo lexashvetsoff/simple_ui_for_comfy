@@ -1,5 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
+
+
+ViewMode = Literal['view', 'hidden', 'no_view']
 
 
 class BindingSpec(BaseModel):
@@ -8,86 +11,68 @@ class BindingSpec(BaseModel):
     map: Optional[Dict[str, Any]] = None
 
 
-class WorkflowMeta(BaseModel):
-    title: str
-    description: Optional[str] = None
+class BaseInputSpec(BaseModel):
+    key: str
+    label: str | None = None
+    view: ViewMode = "view"
 
 
-class WorkflowMode(BaseModel):
+class TextInputSpec(BaseInputSpec):
+    type: Literal["text"] = "text"
+    required: bool = False
+    default: Optional[str] = None
+    binding: Optional[BindingSpec] = None
+
+
+class ParamInputSpec(BaseInputSpec):
+    type: Literal["int", "float", "bool", "text"]
+    default: Optional[Any] = None
+    binding: Optional[BindingSpec] = None
+
+
+class ImageInputSpec(BaseInputSpec):
+    modes: Optional[List[str]] = None
+    binding: Optional[BindingSpec] = None
+
+
+class MaskInputSpec(BaseInputSpec):
+    depends_on: str
+    modes: Optional[List[str]] = None
+    binding: Optional[BindingSpec] = None
+
+
+class InputsSpec(BaseModel):
+    text: List[TextInputSpec] = Field(default_factory=list)
+    params: List[ParamInputSpec] = Field(default_factory=list)
+    images: List[ImageInputSpec] = Field(default_factory=list)
+    mask: Optional[MaskInputSpec] = None
+
+
+class ModeSpec(BaseModel):
     id: str
     label: str
-    description: Optional[str] = None
 
 
-class TextInputSpec(BaseModel):
-    key: str
-    label: str
-    required: bool = False
-    ui: Optional[Dict[str, Any]] = None
-    validation: Optional[Dict[str, Any]] = None
-    binding: BindingSpec
+class MetaSpec(BaseModel):
+    version: str
+    title: str
+    description: str
 
 
-class ImageInputSpec(BaseModel):
-    key: str
-    label: str
-    required: bool = False
-    multiple: bool = False
-    max: Optional[int] = None
-    modes: Optional[List[str]] = None
-    binding: BindingSpec
+class OutputBindingSpec(BaseModel):
+    node_id: str
+    field: str
 
 
-class MaskInputSpec(BaseModel):
-    key: str
-    label: str
-    depends_on: str
-    required: bool = False
-    ui: Optional[Dict[str, Any]] = None
-    modes: Optional[List[str]] = None
-    binding: BindingSpec
-
-
-class ParamInputSpec(BaseModel):
-    key: str
-    type: str  # int, float, bool
-    label: str
-    default: Optional[Any] = None
-    validation: Optional[Dict[str, Any]] = None
-    binding: BindingSpec
-
-
-class PreprocessingBlock(BaseModel):
-    enabled: bool = False
-    params: Optional[Dict[str, Any]] = None
-
-
-class WorkflowOutput(BaseModel):
+class OutputSpec(BaseModel):
     key: str
     type: str
-    primary: bool = False
-
-
-class WorkflowRequirements(BaseModel):
-    models: List[str] = []
-    custom_nodes: List[str] = []
-
-
-class WorkflowInputs(BaseModel):
-    text: List[TextInputSpec] = []
-    images: List[ImageInputSpec] = []
-    mask: Optional[MaskInputSpec] = None
-    params: List[ParamInputSpec] = []
+    binding: OutputBindingSpec
 
 
 class WorkflowSpecV2(BaseModel):
     version: str = Field("2.0", Literal=True)
-
-    meta: WorkflowMeta
-    modes: List[WorkflowMode]
-
-    inputs: WorkflowInputs
-    preprocessing: Optional[Dict[str, PreprocessingBlock]] = {}
-
-    outputs: List[WorkflowOutput]
-    requirements: Optional[WorkflowRequirements] = None
+    meta: MetaSpec
+    modes: List[ModeSpec]
+    inputs: InputsSpec
+    outputs: List[OutputSpec]

@@ -1,0 +1,72 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+
+<h1>{{ workflow.name }}</h1>
+<p>{{ spec.meta.description }}</p>
+
+<form method="post" action="/user/workflows/{{ workflow.slug }}/run" enctype="multipart/form-data">
+    <!-- TEXT INPUTS -->
+    {% for inp in spec.inputs.text %}
+
+    <div>
+        <label>{{ inp.label }}</label><br>
+        <textarea 
+            name="text__{{ inp.key }}" 
+            required="{{ inp.required | default(false) }}"
+            rows="3"
+            style="width: 100%">{{ inp.default | default("") }}</textarea>
+    </div>
+    <br>
+
+    {% endfor %}
+
+    <!-- PARAM INPUTS -->
+    {% for p in spec.inputs.params %}
+
+        <div>
+            <label>{{ p.label }}</label><br>
+            <input 
+                type="{{ 'number' if p.type != 'text' else 'text' }}"
+                name="param__{{ p.key }}"
+                value="{{ p.default }}"
+                style="width: 200px">
+        </div>
+        <br>
+    
+    {% endfor %}
+
+    <!-- IMAGE INPUTS -->
+    {% for img in spec.inputs.images %}
+
+        <div>
+            <label>{{ img.label }}</label><br>
+            <input 
+                type="file"
+                name="image__{{ img.key }}"
+                accept="image/*"
+                required>
+        </div>
+        <br>
+
+    {% endfor %}
+
+    <!-- MASK -->
+    {% if spec.inputs.mask %}
+
+        <div>
+            <label>Mask</label>
+            <input 
+                type="file"
+                name="mask"
+                accept="image/*">
+        </div>
+        <br>
+
+    {% endif %}
+
+    <button type="submit">Run workflow</button>
+
+</form>
+
+{% endblock %}

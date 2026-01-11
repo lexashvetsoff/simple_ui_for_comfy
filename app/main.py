@@ -24,6 +24,7 @@ from app.ui.router import router as ui_router
 from app.user.workflows_router import router as user_workflow_router
 from app.user.jobs_router import router as user_jobs_router
 from app.user.catalog_router import router as user_catalog_router
+from app.api.comfy_view_proxy import router as comfy_view_proxy_router
 
 
 @asynccontextmanager
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(user_workflow_router)
     app.include_router(user_jobs_router)
     app.include_router(user_catalog_router)
+    app.include_router(comfy_view_proxy_router)
     
     logger.info('Application started')
     return app

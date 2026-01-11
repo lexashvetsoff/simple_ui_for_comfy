@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -133,7 +133,11 @@ async def run_workflow(
     await enqueue_job(db=db, job=job)
 
     # 8. Redirect to job page (следующий этап)
-    return {
-        'job_id': job.id,
-        'status': 'queued'
-    }
+    # return {
+    #     'job_id': job.id,
+    #     'status': 'queued'
+    # }
+    return RedirectResponse(
+        url=f'/user/jobs/{job.id}',
+        status_code=302
+    )

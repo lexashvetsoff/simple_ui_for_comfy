@@ -23,6 +23,9 @@
                 <li><a href="/user/workflows">Workflows</a></li>
                 <li><a href="/user/jobs">Jobs</a></li>
                 <li><a href="/auth/logout">Logout</a></li>
+                {% if user.role == "ADMIN" %}
+                    <li><a href="/admin">Dashboard Admin</a></li>
+                {% endif %}
             </ul>
         </nav>
         

@@ -48,8 +48,8 @@
 
         let pct = 0;
         function tickBar() {
-        pct = Math.min(95, pct + Math.random() * 7);
-        barEl.style.width = pct.toFixed(0) + "%";
+            pct = Math.min(95, pct + Math.random() * 7);
+            barEl.style.width = pct.toFixed(0) + "%";
         }
 
         function imgUrl(img) {
@@ -99,24 +99,30 @@
             statusEl.textContent = data.status;
 
             if (data.status === "ERROR") {
-            errorEl.style.display = "block";
-            errorEl.textContent = data.error || "Unknown error";
-            hintEl.textContent = "Job failed";
-            barEl.style.width = "100%";
-            barEl.style.background = "#b00020";
-            return;
+                errorEl.style.display = "block";
+                errorEl.textContent = data.error || "Unknown error";
+                hintEl.textContent = "Job failed";
+                barEl.style.width = "100%";
+                barEl.style.background = "#b00020";
+                return;
             }
 
             if (data.status === "DONE") {
-            hintEl.textContent = "Done";
-            barEl.style.width = "100%";
-            barEl.style.background = "#16a34a";
-            renderResult(data.result);
-            return;
+                hintEl.textContent = "Done";
+                barEl.style.width = "100%";
+                barEl.style.background = "#16a34a";
+                renderResult(data.result);
+                return;
             }
 
-            tickBar();
-            hintEl.textContent = (data.status === "QUEUED") ? "Queued..." : "Running...";
+            if (data.progress && typeof data.progress.percent === "number") {
+                const p = Math.max(0, Math.min(100, data.progress.percent));
+                barEl.style.width = p.toFixed(0) + "%";
+                hintEl.textContent = (data.status === "QUEUED") ? "Queued..." : `Running... ${p.toFixed(0)}%`;
+            } else {
+                tickBar();
+                hintEl.textContent = (data.status === "QUEUED") ? "Queued..." : "Running...";
+            }
             setTimeout(poll, 1500);
         } catch (e) {
             setTimeout(poll, 2500);

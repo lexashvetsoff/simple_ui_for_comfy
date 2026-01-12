@@ -89,6 +89,9 @@ async def scheduler_tick(
 
             execution.prompt_id = prompt_id
             await db.commit()
+
+            from app.services.comfy_progress import ensure_prompt_tracking
+            await ensure_prompt_tracking(node=node, prompt_id=prompt_id)
         except Exception as e:
             execution.status = 'ERROR'
             execution.error_message = str(e)

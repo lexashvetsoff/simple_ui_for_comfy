@@ -11,6 +11,7 @@ from app.models.job import Job
 from app.models.job_execution import JobExecution
 from app.models.comfy_node import ComfyNode
 from app.services.result_normalizer import normalize_job_result
+from app.services.comfy_progress import get_progress
 from app.core.templates import templates
 
 
@@ -116,7 +117,20 @@ async def job_state(
     normalized = normalize_job_result(job.result) if job.result else None
     normalized = _pathc_result_urls(job.id, normalized)
 
-    # print(normalized)
+    progress = None
+    prompt_id = None
+
+    result = await db.execute(
+        select(JobExecution)
+        .where(JobExecution.job_id == job_id)
+        .order_by(JobExecution.started_at.desc().nullslast())
+        .limit(1)
+    )
+    execution = result.scalars().first()
+
+    if execution and execution.prompt_id:
+        prompt_id = execution.prompt_id
+        progress = await get_progress(prompt_id)
     
     return JSONResponse(
         {
@@ -124,6 +138,8 @@ async def job_state(
             'status': job.status, # QUEUED | RUNNING | DONE | ERROR
             'error': job.error_message,
             'result': normalized,
+            'prompt_id': prompt_id,
+            'progress': progress,
             'created_at': job.created_at.isoformat() if job.created_at else None
         }
     )

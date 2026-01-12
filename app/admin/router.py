@@ -488,6 +488,9 @@ async def admin_workflow_edit_page(
 async def admin_workflow_edit(
     workflow_id: str,
     spec_json: str = Form(...),
+    name: str = Form(...),
+    slug: str = Form(...),
+    category: str = Form(...),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin)
 ):
@@ -504,6 +507,9 @@ async def admin_workflow_edit(
     
     parced_spec = validate_workflow_spec(spec)
 
+    workflow.name = name
+    workflow.slug = slug
+    workflow.category = category
     workflow.spec_json = spec
     workflow.version = parced_spec.version
     workflow.requires_mask = bool(parced_spec.inputs.mask)

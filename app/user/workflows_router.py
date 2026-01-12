@@ -40,8 +40,22 @@ async def workflow_run_page(
     if not workflow:
         raise HTTPException(status_code=404, detail='Workflow not found')
     
-    groups = prepare_spec_groups(spec=workflow.spec_json, workflow_json=workflow.workflow_json)
+    # groups = prepare_spec_groups(spec=workflow.spec_json, workflow_json=workflow.workflow_json)
+    groups_visible, groups_hidden_only = prepare_spec_groups(
+        spec=workflow.spec_json,
+        workflow_json=workflow.workflow_json
+    )
     
+    # return templates.TemplateResponse(
+    #     '/user/workflows/run.html',
+    #     {
+    #         'request': request,
+    #         'user': user,
+    #         'workflow': workflow,
+    #         'spec': workflow.spec_json,
+    #         'groups': groups
+    #     }
+    # )
     return templates.TemplateResponse(
         '/user/workflows/run.html',
         {
@@ -49,7 +63,8 @@ async def workflow_run_page(
             'user': user,
             'workflow': workflow,
             'spec': workflow.spec_json,
-            'groups': groups
+            'visible_groups': groups_visible,
+            'hidden_only_groups': groups_hidden_only
         }
     )
 

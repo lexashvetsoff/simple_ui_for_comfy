@@ -7,7 +7,10 @@
 
 <form method="post" action="/user/workflows/{{ workflow.slug }}/run" enctype="multipart/form-data">
 
-    {% for g in groups %}
+    {# ---------------------------
+       1) VISIBLE GROUPS FIRST
+       --------------------------- #}
+    {% for g in visible_groups %}
         <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
             <h3 style="margin: 0 0 10px 0;">{{ g.label }}</h3>
 
@@ -40,7 +43,7 @@
                 </div>
             {% endfor %}
 
-            {# PARAMS hidden in accordion #}
+            {# PARAMS hidden in per-group accordion (only if group also has visible fields) #}
             {% if g.params_hidden and g.params_hidden|length > 0 %}
                 <details style="margin-top: 12px; padding: 10px; border: 1px dashed #ddd; border-radius: 10px;">
                     <summary style="cursor: pointer; font-weight: 600;">
@@ -78,6 +81,82 @@
             {% endfor %}
         </div>
     {% endfor %}
+
+    {# --------------------------------------------------------
+       2) ONE GLOBAL ACCORDION FOR "HIDDEN-ONLY" GROUPS
+       (groups where there were no view/text/image, only hidden)
+       -------------------------------------------------------- #}
+    {% if hidden_only_groups and hidden_only_groups|length > 0 %}
+        <details style="margin: 18px 0; padding: 14px; border: 1px dashed #ddd; border-radius: 12px; max-width: 980px;">
+            <summary style="cursor: pointer; font-weight: 700;">
+                Advanced settings ({{ hidden_only_groups|length }} groups)
+            </summary>
+
+            <div style="margin-top: 14px;">
+                {% for g in hidden_only_groups %}
+                    <div style="margin: 14px 0; padding: 12px; border: 1px solid #eee; border-radius: 12px;">
+                        <h4 style="margin: 0 0 10px 0;">{{ g.label }}</h4>
+
+                        {# text in hidden-only groups (rare), but handle #}
+                        {% for inp in g.text %}
+                            {% if inp.view != 'no_view' %}
+                                <div style="margin-bottom: 14px;">
+                                    <label><b>{{ inp.label }}</b></label><br>
+                                    <textarea
+                                        name="text__{{ inp.key }}"
+                                        rows="4"
+                                        style="width: 100%;"
+                                        {% if inp.required %}required{% endif %}
+                                    >{{ inp.default | default("") }}</textarea>
+                                </div>
+                            {% else %}
+                                <input type="hidden" name="text__{{ inp.key }}" value="{{ inp.default | default('') }}">
+                            {% endif %}
+                        {% endfor %}
+
+                        {# hidden params #}
+                        {% for p in g.params_hidden %}
+                            <div style="margin-bottom: 12px;">
+                                <label>{{ p.label }}</label><br>
+                                {% if p.type == 'text' %}
+                                    <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
+                                {% else %}
+                                    <input type="number" name="param__{{ p.key }}" value="{{ p.default }}" step="any" style="width: 220px;">
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        {# if somehow params_view appear here, render too #}
+                        {% for p in g.params_view %}
+                            <div style="margin-bottom: 12px;">
+                                <label><b>{{ p.label }}</b></label><br>
+                                {% if p.type == 'text' %}
+                                    <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
+                                {% else %}
+                                    <input type="number" name="param__{{ p.key }}" value="{{ p.default }}" step="any" style="width: 220px;">
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        {# no_view params must still be sent #}
+                        {% for p in g.params_no_view %}
+                            <input type="hidden" name="param__{{ p.key }}" value="{{ p.default }}">
+                        {% endfor %}
+
+                        {# images in hidden-only groups (rare), but handle #}
+                        {% for img in g.images %}
+                            {% if img.view != 'no_view' %}
+                                <div style="margin-top: 10px;">
+                                    <label><b>{{ img.label }}</b></label><br>
+                                    <input type="file" name="image__{{ img.key }}" accept="image/*" required>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </details>
+    {% endif %}
 
     {# MASK отдельно #}
     {% if spec.inputs.mask %}

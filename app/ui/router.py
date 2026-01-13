@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Request, Form, Response
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,7 +6,8 @@ from sqlalchemy import select
 from app.models.user import User
 from app.api.deps import get_current_user, get_db, get_current_user_or_none
 from app.core.security import verify_password, hash_password
-from app.core.jwt import create_access_token
+from app.core.jwt import create_access_token, create_refresh_token
+from app.services.auth_service import _clear_auth_cookies, _set_auth_cookies
 from app.core.templates import templates
 
 
@@ -58,17 +59,20 @@ async def user_login(
         )
     
     access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
 
     response = RedirectResponse(
         url='/login',
         status_code=302
     )
 
-    response.set_cookie(
-        key='access_token',
-        value=access_token,
-        httponly=True,
-        samesite='lax'
-    )
+    _set_auth_cookies(response, access_token, refresh_token)
 
+    return response
+
+
+@router.get('/logout')
+async def logout():
+    response = RedirectResponse(url='/', status_code=302)
+    _clear_auth_cookies(response)
     return response

@@ -14,7 +14,8 @@ from app.models.user_limits import UserLimits
 from app.models.comfy_node import ComfyNode
 from app.models.workflow import Workflow
 from app.core.security import verify_password
-from app.core.jwt import create_access_token
+from app.core.jwt import create_access_token, create_refresh_token
+from app.services.auth_service import _clear_auth_cookies, _set_auth_cookies
 from app.core.security import hash_password
 from app.services.workflow_spec_validator import validate_workflow_spec
 from app.services.spec_generator import generate_spec_v2
@@ -71,19 +72,22 @@ async def admin_login(
         )
     
     access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
 
     response = RedirectResponse(
         url='/admin',
         status_code=HTTP_302_FOUND
     )
 
-    response.set_cookie(
-        key='access_token',
-        value=access_token,
-        httponly=True,
-        samesite='lax'
-    )
+    _set_auth_cookies(response, access_token, refresh_token)
 
+    return response
+
+
+@router.get('/logout')
+async def admin_logout():
+    response = RedirectResponse(url='/admin/login', status_code=302)
+    _clear_auth_cookies(response)
     return response
 
 

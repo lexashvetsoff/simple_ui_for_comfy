@@ -10,6 +10,7 @@ from app.db.session import AsyncSessionLocal
 from app.core.bootstrap import create_initial_admin
 from app.services.comfy_health import healthcheck_loop
 from app.services.scheduler_loop import scheduler_loop
+from app.core.errors import install_auth_exception_handlers
 
 from app.api.auth import router as auth_router
 from app.api.admin.users import router as admin_users_router
@@ -53,6 +54,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         debug=settings.DEBAG
     )
+
+    install_auth_exception_handlers(app)
 
     app.mount('/static', StaticFiles(directory='app/static'), name='static')
     app.mount('/storage', StaticFiles(directory=settings.STORAGE_ROOT), name='storage')

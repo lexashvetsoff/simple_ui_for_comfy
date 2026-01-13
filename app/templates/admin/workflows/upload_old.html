@@ -4,15 +4,9 @@
 
 <h2>Upload workflow</h2>
 
-{# helper: красиво печатаем workflow_json и как текст, и как json #}
-{% set workflow_json_text =
-    (workflow_json | default({}) | tojson(indent=2)) if (workflow_json is mapping or workflow_json is sequence)
-    else (workflow_json or '')
-%}
-
 <form method="post" action="/admin/workflows/upload/generate_spec" style="margin-bottom: 16px">
     <label>Workflow JSON</label><br>
-    <textarea name="workflow_json" rows="12" cols="90" required>{{ workflow_json_text }}</textarea><br><br>
+    <textarea name="workflow_json" rows="12" cols="90" required>{{ workflow_json or '' }}</textarea><br><br>
 
     <button type="submit">⚙️ Generate Spec</button>
 </form>
@@ -30,8 +24,7 @@
     <label>Spec JSON</label><br>
     <textarea name="spec_json" rows="12" cols="90" required>{{ spec_json | default({}) | tojson(indent=2) }}</textarea><br><br>
 
-    <label>Workflow JSON (readonly)</label><br>
-    <textarea name="workflow_json" rows="12" cols="90" required readonly>{{ workflow_json_text }}</textarea><br><br>
+    <input type="hidden" name="workflow_json" value="{{ workflow_json | default({}) | tojson }}">
 
     <button type="submit">Upload</button>
 </form>

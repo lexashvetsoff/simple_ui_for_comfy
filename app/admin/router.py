@@ -18,6 +18,7 @@ from app.core.jwt import create_access_token
 from app.core.security import hash_password
 from app.services.workflow_spec_validator import validate_workflow_spec
 from app.services.spec_generator import generate_spec_v2
+from app.services.parse_json import parse_json_field
 
 
 router = APIRouter(prefix='/admin', tags=['admin-ui'])
@@ -529,7 +530,6 @@ async def admin_workflow_upload_generate_spec(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    print('This is...')
     try:
         workflow_data = json.loads(workflow_json)
     except json.JSONDecodeError:
@@ -543,11 +543,11 @@ async def admin_workflow_upload_generate_spec(
             },
             status_code=400
         )
-    print('load json...')
     
     # Генерация spec
     spec = generate_spec_v2(workflow_data)
-    print('generate spec')
+
+    workflow_obj = parse_json_field(workflow_json, 'workflow_json')
 
     try:
         validate_workflow_spec(spec)
@@ -558,7 +558,7 @@ async def admin_workflow_upload_generate_spec(
                 'request': request,
                 'user': admin,
                 'error': e.detail,
-                'workflow_json': workflow_json,
+                'workflow_json': workflow_obj,
                 'spec_json': json.dumps(spec, indent=2),
             },
             status_code=400
@@ -570,7 +570,7 @@ async def admin_workflow_upload_generate_spec(
         {
             'request': request,
             'user': admin,
-            'workflow_json': workflow_json,
+            'workflow_json': workflow_obj,
             # 'spec_json': json.dumps(spec, indent=2),
             'spec_json': spec,
         }

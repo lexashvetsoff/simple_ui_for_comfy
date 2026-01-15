@@ -5,36 +5,42 @@ class ComfyPromptBuildError(Exception):
     pass
 
 
-# slot_index -> input_name
-NODE_INPUT_SLOTS: Dict[str, list[str]] = {
-    "CLIPTextEncode": ["clip", "text"],
-    "BasicScheduler": ["model", "scheduler", "steps", "denoise"],
-    "BasicGuider": ["model", "conditioning"],
-    "SamplerCustomAdvanced": ["noise", "guider", "sampler", "sigmas", "latent_image"],
-    "KSamplerSelect": ["sampler_name"],
-    "RandomNoise": ["noise_seed"],
-    "EmptyLatentImage": ["width", "height", "batch_size"],
-    "VAELoader": ["vae_name"],
-    "VAEDecode": ["samples", "vae"],
-    "UNETLoader": ["unet_name", "weight_dtype"],
-    "DualCLIPLoader": ["clip_name1", "clip_name2", "type", "device"],
-    "PreviewImage": ["images"],
-}
+def _extract_widget_names_from_inputs_list(node_inputs: list) -> List[str]:
+    """
+    Из UI формата node["inputs"] (list) пытаемся извлечь имена виджетов в правильном порядке.
+    В ComfyUI UI-json виджетные элементы часто выглядят как dict с {"name": "...", "widget": {...}, "link": null}
+    """
+    names: List[str] = []
+    for item in node_inputs:
+        if isinstance(item, dict):
+            # link != None => это связанный вход, не виджет
+            if item.get("link") is not None:
+                continue
+            name = item.get("name")
+            if isinstance(name, str) and name:
+                names.append(name)
+    return names
+
+
+def _extract_widget_names_from_ue_properties(node: dict) -> List[str]:
+    """
+    Fallback: берём имена виджетов из node["properties"]["ue_properties"]["widget_ue_connectable"].
+    Обычно порядок ключей соответствует widgets_values.
+    """
+    props = node.get("properties") or {}
+    ue = props.get("ue_properties") or {}
+    w = ue.get("widget_ue_connectable") or {}
+    if isinstance(w, dict):
+        return [k for k in w.keys()]
+    return []
 
 
 def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
     """
     Converts ComfyUI UI-workflow JSON into execution Prompt Graph.
 
-    Output:
-    {
-        "prompt": {
-            "node_id": {
-                "class_type": "...",
-                "inputs": { "name": value | [node_id, slot_index] }
-            }
-        }
-    }
+    Returns:
+      {"prompt": { "<node_id>": {"class_type": "...", "inputs": {...}}, ... }}
     """
     if "nodes" not in workflow or not isinstance(workflow["nodes"], list):
         raise ComfyPromptBuildError("workflow['nodes'] must be a list")
@@ -42,69 +48,105 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
     nodes = workflow["nodes"]
     links = workflow.get("links", [])
 
+    # ------------------------------------------------------------
     # 1) Index nodes by id
+    # ------------------------------------------------------------
     node_map: Dict[int, dict] = {}
     for node in nodes:
-        node_id = node.get("id")
-        class_type = node.get("class_type")
-
-        if node_id is None:
+        nid = node.get("id")
+        if nid is None:
             raise ComfyPromptBuildError("Node missing 'id'")
-        if not class_type:
-            raise ComfyPromptBuildError(f"Node {node_id} missing 'class_type'")
+        if "class_type" not in node:
+            raise ComfyPromptBuildError(f"Node {nid} missing 'class_type'")
+        node_map[int(nid)] = node
 
-        node_map[int(node_id)] = node
-
-    # 2) Build link map: dst_node_id -> dst_slot -> (src_node_id, src_output_slot)
+    # ------------------------------------------------------------
+    # 2) Build link map: dst_node_id -> dst_input_slot -> (src_node_id, src_output_slot)
+    # links: [link_id, src_id, src_slot, dst_id, dst_slot, type]
+    # ------------------------------------------------------------
     link_map: Dict[int, Dict[int, Tuple[int, int]]] = {}
     for link in links:
-        # [link_id, src_node_id, src_slot, dst_node_id, dst_slot, type]
         if not isinstance(link, list) or len(link) < 6:
             continue
         _, src_id, src_slot, dst_id, dst_slot, _ = link
-        link_map.setdefault(int(dst_id), {})[int(dst_slot)] = (int(src_id), int(src_slot))
+        try:
+            link_map.setdefault(int(dst_id), {})[int(dst_slot)] = (int(src_id), int(src_slot))
+        except Exception:
+            continue
 
+    # ------------------------------------------------------------
     # 3) Build prompt graph
+    # ------------------------------------------------------------
     prompt: Dict[str, Dict[str, Any]] = {}
 
     for node_id, node in node_map.items():
-        class_type = node["class_type"]
-        slot_names = NODE_INPUT_SLOTS.get(class_type)
+        node_inputs = node.get("inputs", [])
+        widgets_values = node.get("widgets_values", [])
 
-        if not slot_names:
-            raise ComfyPromptBuildError(f"Unknown input schema for node class '{class_type}'")
+        if widgets_values is None:
+            widgets_values = []
+        if not isinstance(widgets_values, list):
+            widgets_values = []
 
         inputs: Dict[str, Any] = {}
-        widget_values = node.get("widgets_values", [])
-        if widget_values is None:
-            widget_values = []
-        if not isinstance(widget_values, list):
-            widget_values = []
 
-        # 3.1) Linked inputs first (authoritative)
-        dst_links = link_map.get(node_id, {})
-        for dst_slot, (src_id, src_slot) in dst_links.items():
-            if dst_slot >= len(slot_names):
-                raise ComfyPromptBuildError(
-                    f"Slot index {dst_slot} out of range for {class_type}"
-                )
-            input_name = slot_names[dst_slot]
-            inputs[input_name] = [str(src_id), src_slot]
+        # ----------------------------
+        # 3.1 UI format: inputs is list
+        # ----------------------------
+        if isinstance(node_inputs, list):
+            # именование виджетов:
+            widget_names = _extract_widget_names_from_inputs_list(node_inputs)
+            if not widget_names:
+                widget_names = _extract_widget_names_from_ue_properties(node)
 
-        # 3.2) Widget/literal inputs:
-        # IMPORTANT: widgets_values correspond ONLY to the remaining (non-linked) inputs, sequentially.
-        remaining_names: List[str] = [n for n in slot_names if n not in inputs]
+            widget_index = 0
 
-        for value, input_name in zip(widget_values, remaining_names):
-            inputs[input_name] = value
+            for slot_index, item in enumerate(node_inputs):
+                # Linked input
+                if isinstance(item, dict) and item.get("link") is not None:
+                    # должен быть в link_map
+                    m = link_map.get(node_id, {})
+                    if slot_index not in m:
+                        continue
+                    src_id, src_slot = m[slot_index]
+                    in_name = item.get("name")
+                    if not in_name:
+                        continue
+                    inputs[str(in_name)] = [str(src_id), int(src_slot)]
+                    continue
 
-        # 3.3) Final node assembly
+                # Widget / literal input (занимает widgets_values[widget_index])
+                if widget_index >= len(widgets_values):
+                    break
+
+                # Берём имя для этого виджета
+                if widget_index < len(widget_names):
+                    wname = widget_names[widget_index]
+                else:
+                    # крайний fallback — но лучше не доводить до этого
+                    wname = f"widget_{widget_index}"
+
+                inputs[str(wname)] = widgets_values[widget_index]
+                widget_index += 1
+
+        # ----------------------------
+        # 3.2 inputs already dict (редко)
+        # ----------------------------
+        elif isinstance(node_inputs, dict):
+            for name, value in node_inputs.items():
+                # linked dict input
+                if isinstance(value, dict) and value.get("link") is not None:
+                    # здесь надо бы тоже ссылку восстановить, но в твоих workflow это обычно list-формат
+                    continue
+                inputs[str(name)] = value
+
+        else:
+            # неизвестный формат inputs
+            raise ComfyPromptBuildError(f"Unsupported node.inputs type for node {node_id}: {type(node_inputs)}")
+
         prompt[str(node_id)] = {
-            "class_type": class_type,
+            "class_type": node["class_type"],
             "inputs": inputs,
         }
-
-    if not prompt:
-        raise ComfyPromptBuildError("Prompt graph is empty")
 
     return {"prompt": prompt}

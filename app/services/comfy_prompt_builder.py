@@ -1,37 +1,35 @@
-from typing import Dict, Any, Tuple, List, Set
+from typing import Dict, Any, Tuple, List, Optional
 
 
 class ComfyPromptBuildError(Exception):
     pass
 
 
-UI_ONLY_NODE_TYPES: Set[str] = {
-    "Fast Groups Muter (rgthree)",
-    "Image Comparer (rgthree)",
-    "Note",
-    "MarkdownNote",
-}
+def _node_class_type(node: dict) -> str:
+    # UI-json: "type"
+    # API-ish: "class_type"
+    # fallback: properties["Node name for S&R"]
+    ct = node.get("class_type") or node.get("type")
+    if not ct:
+        props = node.get("properties") or {}
+        ct = props.get("Node name for S&R")
+    return str(ct or "")
 
 
-def _get_class_type(node: dict) -> str:
-    """
-    UI workflow uses 'type'. Some exports can include 'class_type'.
-    For execution prompt we need 'class_type'.
-    """
-    ct = node.get("class_type") or node.get("type") or ""
-    return str(ct)
+def _is_muted(node: dict) -> bool:
+    # В воркфлоу mute обычно = 2
+    return node.get("mode") == 2
+
+
+def _is_bypass(node: dict) -> bool:
+    # В воркфлоу bypass часто = 4
+    return node.get("mode") == 4
 
 
 def _extract_widget_names_from_inputs_list(node_inputs: list) -> List[str]:
-    """
-    From UI format node["inputs"] (list) try to extract widget names in correct order.
-    Widget items in UI-json often look like:
-      {"name": "...", "widget": {...}, "link": null}
-    """
     names: List[str] = []
     for item in node_inputs:
         if isinstance(item, dict):
-            # link != None => connected input, not widget
             if item.get("link") is not None:
                 continue
             name = item.get("name")
@@ -41,10 +39,6 @@ def _extract_widget_names_from_inputs_list(node_inputs: list) -> List[str]:
 
 
 def _extract_widget_names_from_ue_properties(node: dict) -> List[str]:
-    """
-    Fallback: take widget names from node["properties"]["ue_properties"]["widget_ue_connectable"].
-    Often key order matches widgets_values order (Python 3.7+ preserves dict order).
-    """
     props = node.get("properties") or {}
     ue = props.get("ue_properties") or {}
     w = ue.get("widget_ue_connectable") or {}
@@ -53,139 +47,128 @@ def _extract_widget_names_from_ue_properties(node: dict) -> List[str]:
     return []
 
 
-def _sanitize_ui_workflow(workflow: dict) -> dict:
-    """
-    Remove UI-only nodes to avoid ComfyUI validation failures,
-    and drop links that refer to removed nodes.
-    """
+def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
     if "nodes" not in workflow or not isinstance(workflow["nodes"], list):
         raise ComfyPromptBuildError("workflow['nodes'] must be a list")
-
-    nodes_in = workflow["nodes"]
-    links_in = workflow.get("links", [])
-
-    kept_nodes: List[dict] = []
-    kept_ids: Set[int] = set()
-
-    for n in nodes_in:
-        if not isinstance(n, dict):
-            continue
-        nid = n.get("id")
-        if nid is None:
-            continue
-        try:
-            nid_int = int(nid)
-        except Exception:
-            continue
-
-        ct = _get_class_type(n)
-        if ct in UI_ONLY_NODE_TYPES:
-            continue
-
-        kept_nodes.append(n)
-        kept_ids.add(nid_int)
-
-    kept_links: List[list] = []
-    if isinstance(links_in, list):
-        for link in links_in:
-            # links: [link_id, src_id, src_slot, dst_id, dst_slot, type]
-            if not isinstance(link, list) or len(link) < 6:
-                continue
-            try:
-                _, src_id, _, dst_id, _, _ = link
-                if int(src_id) not in kept_ids or int(dst_id) not in kept_ids:
-                    continue
-                kept_links.append(link)
-            except Exception:
-                continue
-
-    out = dict(workflow)
-    out["nodes"] = kept_nodes
-    out["links"] = kept_links
-    return out
-
-
-def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
-    """
-    Converts ComfyUI UI-workflow JSON into execution Prompt Graph.
-
-    Returns:
-      {"prompt": { "<node_id>": {"class_type": "...", "inputs": {...}}, ... }}
-    """
-    workflow = _sanitize_ui_workflow(workflow)
 
     nodes = workflow["nodes"]
     links = workflow.get("links", [])
 
-    # ------------------------------------------------------------
-    # 1) Index nodes by id
-    # ------------------------------------------------------------
+    # 1) index nodes
     node_map: Dict[int, dict] = {}
     for node in nodes:
         nid = node.get("id")
         if nid is None:
             raise ComfyPromptBuildError("Node missing 'id'")
-
-        ct = _get_class_type(node)
-        if not ct:
-            raise ComfyPromptBuildError(f"Node {nid} missing 'type/class_type'")
-
         node_map[int(nid)] = node
 
-    # ------------------------------------------------------------
-    # 2) Build link map: dst_node_id -> dst_input_slot -> (src_node_id, src_output_slot)
-    # links: [link_id, src_id, src_slot, dst_id, dst_slot, type]
-    # ------------------------------------------------------------
+    # 2) link map: dst_node_id -> dst_input_slot -> (src_node_id, src_output_slot)
     link_map: Dict[int, Dict[int, Tuple[int, int]]] = {}
-    if isinstance(links, list):
-        for link in links:
-            if not isinstance(link, list) or len(link) < 6:
-                continue
-            _, src_id, src_slot, dst_id, dst_slot, _ = link
-            try:
-                link_map.setdefault(int(dst_id), {})[int(dst_slot)] = (int(src_id), int(src_slot))
-            except Exception:
-                continue
+    for link in links:
+        if not isinstance(link, list) or len(link) < 6:
+            continue
+        _, src_id, src_slot, dst_id, dst_slot, _ = link
+        try:
+            link_map.setdefault(int(dst_id), {})[int(dst_slot)] = (int(src_id), int(src_slot))
+        except Exception:
+            continue
 
-    # ------------------------------------------------------------
-    # 3) Build prompt graph
-    # ------------------------------------------------------------
+    # 3) resolver: учитываем mute/bypass
+    def resolve_source(src_id: int, src_slot: int) -> Optional[Tuple[int, int]]:
+        """
+        Возвращает реальный источник для (src_id, src_slot),
+        учитывая mute/bypass цепочки.
+        """
+        node = node_map.get(src_id)
+        if not node:
+            return None
+
+        # muted: источника нет
+        if _is_muted(node):
+            return None
+
+        # bypass: выход ноды = её "подходящий" вход
+        if _is_bypass(node):
+            node_inputs = node.get("inputs") or []
+            node_outputs = node.get("outputs") or []
+            out_type = None
+            if isinstance(node_outputs, list) and src_slot < len(node_outputs):
+                out_type = (node_outputs[src_slot] or {}).get("type")
+
+            passthrough_slot = None
+            if isinstance(node_inputs, list):
+                for i, inp in enumerate(node_inputs):
+                    if not isinstance(inp, dict):
+                        continue
+                    if inp.get("link") is None:
+                        continue
+                    # стараемся подобрать вход того же типа, что и выход
+                    if out_type and inp.get("type") == out_type:
+                        passthrough_slot = i
+                        break
+                # fallback: первый связанный вход
+                if passthrough_slot is None:
+                    for i, inp in enumerate(node_inputs):
+                        if isinstance(inp, dict) and inp.get("link") is not None:
+                            passthrough_slot = i
+                            break
+
+            if passthrough_slot is None:
+                return None
+
+            m = link_map.get(src_id, {})
+            if passthrough_slot not in m:
+                return None
+
+            prev_src_id, prev_src_slot = m[passthrough_slot]
+            return resolve_source(prev_src_id, prev_src_slot) or (prev_src_id, prev_src_slot)
+
+        # обычная нода
+        return (src_id, src_slot)
+
+    # 4) build prompt graph
     prompt: Dict[str, Dict[str, Any]] = {}
 
     for node_id, node in node_map.items():
+        if _is_muted(node):
+            continue  # mute ноды вообще не включаем в prompt
+
+        class_type = _node_class_type(node)
+        if not class_type:
+            raise ComfyPromptBuildError(f"Node {node_id} has no type/class_type")
+
         node_inputs = node.get("inputs", [])
         widgets_values = node.get("widgets_values", [])
-
         if widgets_values is None or not isinstance(widgets_values, list):
             widgets_values = []
 
         inputs: Dict[str, Any] = {}
 
-        # ----------------------------
-        # 3.1 UI format: inputs is list
-        # ----------------------------
         if isinstance(node_inputs, list):
             widget_names = _extract_widget_names_from_inputs_list(node_inputs)
             if not widget_names:
                 widget_names = _extract_widget_names_from_ue_properties(node)
 
             widget_index = 0
-
             for slot_index, item in enumerate(node_inputs):
-                # Linked input
+                # linked
                 if isinstance(item, dict) and item.get("link") is not None:
                     m = link_map.get(node_id, {})
                     if slot_index not in m:
-                        # connected in UI but link missing after sanitize -> just skip
                         continue
-                    src_id, src_slot = m[slot_index]
-                    in_name = item.get("name") or item.get("localized_name") or ""
+                    raw_src_id, raw_src_slot = m[slot_index]
+                    resolved = resolve_source(raw_src_id, raw_src_slot)
+                    if not resolved:
+                        continue
+                    src_id2, src_slot2 = resolved
+
+                    in_name = item.get("name")
                     if not in_name:
                         continue
-                    inputs[str(in_name)] = [str(src_id), int(src_slot)]
+                    inputs[str(in_name)] = [str(src_id2), int(src_slot2)]
                     continue
 
-                # Widget / literal input (occupies widgets_values[widget_index])
+                # widget literal
                 if widget_index >= len(widgets_values):
                     break
 
@@ -197,14 +180,9 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
                 inputs[str(wname)] = widgets_values[widget_index]
                 widget_index += 1
 
-        # ----------------------------
-        # 3.2 inputs already dict (rare)
-        # ----------------------------
         elif isinstance(node_inputs, dict):
+            # редко, но поддержим
             for name, value in node_inputs.items():
-                # if someone stores {"link": ...} here, we'd need more logic
-                if isinstance(value, dict) and value.get("link") is not None:
-                    continue
                 inputs[str(name)] = value
 
         else:
@@ -213,7 +191,7 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
             )
 
         prompt[str(node_id)] = {
-            "class_type": _get_class_type(node),
+            "class_type": class_type,
             "inputs": inputs,
         }
 

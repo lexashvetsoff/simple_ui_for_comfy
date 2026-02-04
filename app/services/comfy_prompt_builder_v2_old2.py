@@ -1,65 +1,37 @@
+from __future__ import annotations
 import random
-from typing import Dict, Any, Tuple, List, Optional
+from typing import Any, Dict, Tuple, Optional, List
+
+from app.services.comfy_prompt_builder import (
+    ComfyPromptBuildError,
+    _node_class_type,
+    _is_muted,
+    _is_bypass
+)
 
 
-class ComfyPromptBuildError(Exception):
-    pass
+def _schema_for_class(object_info: Dict[str, Any], class_type: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    info = (object_info or {}).get(class_type) or {}
+    inputs = info.get("input") or {}
+    required = inputs.get("required") or {}
+    optional = inputs.get("optional") or {}
+    if not isinstance(required, dict):
+        required = {}
+    if not isinstance(optional, dict):
+        optional = {}
+    return required, optional
 
 
-def _node_class_type(node: dict) -> str:
-    # UI-json: "type"
-    # API-ish: "class_type"
-    # fallback: properties["Node name for S&R"]
-    ct = node.get("class_type") or node.get("type")
-    if not ct:
-        props = node.get("properties") or {}
-        ct = props.get("Node name for S&R")
-    return str(ct or "")
-
-
-def _is_muted(node: dict) -> bool:
-    # В воркфлоу mute обычно = 2
-    return node.get("mode") == 2
-
-
-def _is_bypass(node: dict) -> bool:
-    # В воркфлоу bypass часто = 4
-    return node.get("mode") == 4
-
-
-def _extract_widget_names_from_inputs_list(node_inputs: list) -> List[str]:
-    names: List[str] = []
-    for item in node_inputs:
-        if isinstance(item, dict):
-            if item.get("link") is not None:
-                continue
-            name = item.get("name")
-            if isinstance(name, str) and name:
-                names.append(name)
-    return names
-
-
-def _extract_widget_names_from_ue_properties(node: dict) -> List[str]:
-    props = node.get("properties") or {}
-    ue = props.get("ue_properties") or {}
-    w = ue.get("widget_ue_connectable") or {}
-    if isinstance(w, dict):
-        return [k for k in w.keys()]
-    return []
-
-
-def _extract_widget_names(node: dict, node_inputs: list) -> List[str]:
-    # 1) ue_properties база
-    base = _extract_widget_names_from_ue_properties(node)
-    names = list(base)
-
-    # 2) дополнение из inputs
-    extra = _extract_widget_names_from_inputs_list(node_inputs)
-    for n in extra:
-        if n not in names:
-            names.append(n)
-
-    return names
+def _widget_field_order(object_info: Dict[str, Any], class_type: str) -> List[str]:
+    required, optional = _schema_for_class(object_info, class_type)
+    fields: List[str] = []
+    for k in required.keys():
+        fields.append(str(k))
+    for k in optional.keys():
+        ks = str(k)
+        if ks not in fields:
+            fields.append(ks)
+    return fields
 
 
 
@@ -113,7 +85,11 @@ def _align_widgets_values_for_fields(node_type: str, widget_fields: list[str], w
         wv[seed_i] = random.randint(0, 2**63 - 1)
 
     return wv
-def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
+def build_prompt_from_ui_workflow_v2(workflow: dict, object_info: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Builds ComfyUI API prompt from UI workflow JSON (nodes+links),
+    using /object_info to map widgets_values -> correct input field names.
+    """
     if "nodes" not in workflow or not isinstance(workflow["nodes"], list):
         raise ComfyPromptBuildError("workflow['nodes'] must be a list")
 
@@ -141,41 +117,31 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
 
     # 3) resolver: учитываем mute/bypass
     def resolve_source(src_id: int, src_slot: int) -> Optional[Tuple[int, int]]:
-        """
-        Возвращает реальный источник для (src_id, src_slot),
-        учитывая mute/bypass цепочки.
-        """
         node = node_map.get(src_id)
         if not node:
             return None
 
-        # muted: источника нет
         if _is_muted(node):
             return None
 
-        # bypass: выход ноды = её "подходящий" вход
         if _is_bypass(node):
             node_inputs = node.get("inputs") or []
             node_outputs = node.get("outputs") or []
 
-            # тип выхода (чтобы подобрать вход того же типа)
             out_type = None
             if isinstance(node_outputs, list) and src_slot < len(node_outputs):
                 out_type = (node_outputs[src_slot] or {}).get("type")
 
             passthrough_slot = None
             if isinstance(node_inputs, list):
-                # 1) ищем связанный вход того же типа
                 for i, inp in enumerate(node_inputs):
                     if not isinstance(inp, dict):
                         continue
                     if inp.get("link") is None:
                         continue
-                    
                     if out_type and inp.get("type") == out_type:
                         passthrough_slot = i
                         break
-                # fallback: первый связанный вход
                 if passthrough_slot is None:
                     for i, inp in enumerate(node_inputs):
                         if isinstance(inp, dict) and inp.get("link") is not None:
@@ -192,7 +158,6 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
             prev_src_id, prev_src_slot = m[passthrough_slot]
             return resolve_source(prev_src_id, prev_src_slot) or (prev_src_id, prev_src_slot)
 
-        # обычная нода
         return (src_id, src_slot)
 
     # 4) build prompt graph
@@ -200,46 +165,24 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
 
     for node_id, node in node_map.items():
         if _is_muted(node):
-            continue  # mute ноды вообще не включаем в prompt
+            continue
 
         class_type = _node_class_type(node)
         if not class_type:
             raise ComfyPromptBuildError(f"Node {node_id} has no type/class_type")
-        
-        if class_type in {
-            "Note",
-            "MarkdownNote",
-            "Label (rgthree)",
-            "Fast Groups Muter (rgthree)",
-            "Image Comparer (rgthree)",
-        }:
-            continue
 
         node_inputs = node.get("inputs", [])
         widgets_values = node.get("widgets_values", [])
         if widgets_values is None or not isinstance(widgets_values, list):
             widgets_values = []
 
+        widget_fields = _widget_field_order(object_info, class_type)
+
+        widgets_values = _align_widgets_values_for_fields(class_type, widget_fields, widgets_values)
         inputs: Dict[str, Any] = {}
+        widget_index = 0
 
         if isinstance(node_inputs, list):
-            # widget_names = _extract_widget_names_from_inputs_list(node_inputs)
-            # if not widget_names:
-            #     widget_names = _extract_widget_names_from_ue_properties(node)
-
-            # widget_names_inputs = _extract_widget_names_from_inputs_list(node_inputs)
-            # widget_names_ue = _extract_widget_names_from_ue_properties(node)
-
-            # # UE — источник истины для widgets_values, если совпадает по длине или хотя бы не меньше
-            # if widget_names_ue and len(widget_names_ue) >= len(widgets_values):
-            #     widget_names = widget_names_ue
-            # elif widget_names_ue and len(widget_names_ue) >= len(widget_names_inputs):
-            #     widget_names = widget_names_ue
-            # else:
-            #     widget_names = widget_names_inputs or widget_names_ue
-            widget_names = _extract_widget_names(node, node_inputs)
-
-            widget_index = 0
             for slot_index, item in enumerate(node_inputs):
                 # linked
                 if isinstance(item, dict) and item.get("link") is not None:
@@ -264,27 +207,16 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
                 if widget_index >= len(widgets_values):
                     break
 
-                if widget_index < len(widget_names):
-                    wname = widget_names[widget_index]
-                else:
-                    wname = f"widget_{widget_index}"
-
-                inputs[str(wname)] = widgets_values[widget_index]
+                field_name = widget_fields[widget_index] if widget_index < len(widget_fields) else f"widget_{widget_index}"
+                inputs[str(field_name)] = widgets_values[widget_index]
                 widget_index += 1
 
         elif isinstance(node_inputs, dict):
-            # редко, но поддержим
             for name, value in node_inputs.items():
                 inputs[str(name)] = value
-
         else:
-            raise ComfyPromptBuildError(
-                f"Unsupported node.inputs type for node {node_id}: {type(node_inputs)}"
-            )
+            raise ComfyPromptBuildError(f"Unsupported node.inputs type for node {node_id}: {type(node_inputs)}")
 
-        prompt[str(node_id)] = {
-            "class_type": class_type,
-            "inputs": inputs,
-        }
+        prompt[str(node_id)] = {"class_type": class_type, "inputs": inputs}
 
     return {"prompt": prompt}

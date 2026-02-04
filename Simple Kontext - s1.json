@@ -18,7 +18,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 27,
+            "order": 25,
             "mode": 0,
             "inputs": [
                 {
@@ -81,7 +81,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 30,
+            "order": 28,
             "mode": 0,
             "inputs": [
                 {
@@ -140,7 +140,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 21,
+            "order": 23,
             "mode": 0,
             "inputs": [
                 {
@@ -195,7 +195,7 @@
             "flags": {
                 "collapsed": true
             },
-            "order": 28,
+            "order": 26,
             "mode": 0,
             "inputs": [
                 {
@@ -242,7 +242,7 @@
                 46
             ],
             "flags": {},
-            "order": 29,
+            "order": 27,
             "mode": 0,
             "inputs": [
                 {
@@ -297,7 +297,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 32,
+            "order": 30,
             "mode": 0,
             "inputs": [
                 {
@@ -340,76 +340,6 @@
             "widgets_values": []
         },
         {
-            "id": 204,
-            "type": "LoadImage",
-            "pos": [
-                -2618.7857570293736,
-                937.20703125
-            ],
-            "size": [
-                274.080078125,
-                314
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "inputs": [
-                {
-                    "localized_name": "image",
-                    "name": "image",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "image"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "choose file to upload",
-                    "name": "upload",
-                    "type": "IMAGEUPLOAD",
-                    "widget": {
-                        "name": "upload"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "label": "IMAGE",
-                    "localized_name": "IMAGE",
-                    "name": "IMAGE",
-                    "type": "IMAGE",
-                    "links": [
-                        499,
-                        517,
-                        815
-                    ]
-                },
-                {
-                    "label": "MASK",
-                    "localized_name": "MASK",
-                    "name": "MASK",
-                    "type": "MASK",
-                    "links": null
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfy-core",
-                "ver": "0.3.43",
-                "Node name for S&R": "LoadImage",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "ComfyUI_00550_.png",
-                "image"
-            ],
-            "color": "#3f6dca",
-            "bgcolor": "#2b59b6"
-        },
-        {
             "id": 249,
             "type": "KSampler",
             "pos": [
@@ -421,7 +351,7 @@
                 526
             ],
             "flags": {},
-            "order": 31,
+            "order": 29,
             "mode": 0,
             "inputs": [
                 {
@@ -528,7 +458,7 @@
                 }
             },
             "widgets_values": [
-                631636061799338,
+                346899108982876,
                 "randomize",
                 24,
                 1,
@@ -549,7 +479,7 @@
                 26
             ],
             "flags": {},
-            "order": 17,
+            "order": 18,
             "mode": 0,
             "inputs": [
                 {
@@ -583,190 +513,6 @@
             "widgets_values": []
         },
         {
-            "id": 271,
-            "type": "NunchakuFluxLoraLoader",
-            "pos": [
-                -1683.68701171875,
-                1279.4552001953125
-            ],
-            "size": [
-                289.0093688964844,
-                82
-            ],
-            "flags": {},
-            "order": 14,
-            "mode": 4,
-            "inputs": [
-                {
-                    "localized_name": "model",
-                    "name": "model",
-                    "type": "MODEL",
-                    "link": 497
-                },
-                {
-                    "localized_name": "lora_name",
-                    "name": "lora_name",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "lora_name"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "lora_strength",
-                    "name": "lora_strength",
-                    "type": "FLOAT",
-                    "widget": {
-                        "name": "lora_strength"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "MODEL",
-                    "name": "MODEL",
-                    "type": "MODEL",
-                    "links": [
-                        545
-                    ]
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfyui-nunchaku",
-                "ver": "0.3.4",
-                "Node name for S&R": "NunchakuFluxLoraLoader",
-                "ue_properties": {
-                    "widget_ue_connectable": {
-                        "lora_name": true,
-                        "lora_strength": true
-                    },
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "KONTEXT\\Put it here_V4.2.safetensors",
-                1
-            ]
-        },
-        {
-            "id": 272,
-            "type": "NunchakuFluxDiTLoader",
-            "pos": [
-                -1679.341064453125,
-                995.6484985351562
-            ],
-            "size": [
-                275.7613220214844,
-                202
-            ],
-            "flags": {},
-            "order": 1,
-            "mode": 2,
-            "inputs": [
-                {
-                    "localized_name": "model_path",
-                    "name": "model_path",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "model_path"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "cache_threshold",
-                    "name": "cache_threshold",
-                    "type": "FLOAT",
-                    "widget": {
-                        "name": "cache_threshold"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "attention",
-                    "name": "attention",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "attention"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "cpu_offload",
-                    "name": "cpu_offload",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "cpu_offload"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "device_id",
-                    "name": "device_id",
-                    "type": "INT",
-                    "widget": {
-                        "name": "device_id"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "data_type",
-                    "name": "data_type",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "data_type"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "i2f_mode",
-                    "name": "i2f_mode",
-                    "shape": 7,
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "i2f_mode"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "MODEL",
-                    "name": "MODEL",
-                    "type": "MODEL",
-                    "links": [
-                        497
-                    ]
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfyui-nunchaku",
-                "ver": "0.3.4",
-                "Node name for S&R": "NunchakuFluxDiTLoader",
-                "ue_properties": {
-                    "widget_ue_connectable": {
-                        "model_path": true,
-                        "cache_threshold": true,
-                        "attention": true,
-                        "cpu_offload": true,
-                        "device_id": true,
-                        "data_type": true,
-                        "i2f_mode": true
-                    },
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "SVDQ\\svdq-fp4_r32-flux.1-kontext-dev.safetensors",
-                0,
-                "nunchaku-fp16",
-                "enable",
-                0,
-                "bfloat16",
-                "enabled"
-            ]
-        },
-        {
             "id": 273,
             "type": "Image Comparer (rgthree)",
             "pos": [
@@ -778,7 +524,7 @@
                 521.123779296875
             ],
             "flags": {},
-            "order": 33,
+            "order": 31,
             "mode": 0,
             "inputs": [
                 {
@@ -809,64 +555,17 @@
                     {
                         "name": "A",
                         "selected": true,
-                        "url": "/api/view?filename=rgthree.compare._temp_gaokn_00001_.png&type=temp&subfolder=&rand=0.033077025541581984"
+                        "url": "/api/view?filename=rgthree.compare._temp_gaokn_00001_.png&type=temp&subfolder=&rand=0.6223257975059973"
                     },
                     {
                         "name": "B",
                         "selected": true,
-                        "url": "/api/view?filename=rgthree.compare._temp_gaokn_00002_.png&type=temp&subfolder=&rand=0.3708265838350605"
+                        "url": "/api/view?filename=rgthree.compare._temp_gaokn_00002_.png&type=temp&subfolder=&rand=0.04422815403309954"
                     }
                 ]
             ],
             "color": "#432",
             "bgcolor": "#653"
-        },
-        {
-            "id": 276,
-            "type": "ShowText|pysssss",
-            "pos": [
-                -1657.1417236328125,
-                2368.04443359375
-            ],
-            "size": [
-                389.2101135253906,
-                478.765869140625
-            ],
-            "flags": {},
-            "order": 24,
-            "mode": 0,
-            "inputs": [
-                {
-                    "localized_name": "text",
-                    "name": "text",
-                    "type": "STRING",
-                    "link": 533
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "STRING",
-                    "name": "STRING",
-                    "shape": 6,
-                    "type": "STRING",
-                    "links": null
-                }
-            ],
-            "title": "for MANUAL PROMPT 🐍",
-            "properties": {
-                "cnr_id": "comfyui-custom-scripts",
-                "ver": "1.2.5",
-                "Node name for S&R": "ShowText|pysssss",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "➖ Zoom: объекта сцены\nНазови элемент сцены на котором нужен Zoom.\nZoom on a head.\n\n➖ Relight — Изменяем освещение\nВиды освещений: Film Noir , Silhouette,   Dark,  Hard Lighting,  hard shadow , Golden Hour,  Blue,  Neon,  black and white,  night,  sepia.\nRelight *image* to Film Noir cinimatic.\n\n➖ Удалить всю мебель из комнаты\nУточните элементы, которые нужно удалить.\nRemove furniture, tables, cabinets, carpets from this photos.\n\n➖ Удалить весь текст\nУдаляет текст с постеров и изображений.\n⏩ Remove all languages text.\n\n➖ Заменить обои, пол и другие объекты интерьера\nУкажите что на что нужно заменить.\nChange the interior design to gray wallpaper and the floor to beige carpet.\n\n⏩ Фотография продукта\nУкажите окружение и(или) стиль для продукта.\nChange this photo to a professional product photo with a nature background.\n\n⏩ Восстановление и колоризация фото 1\nRestore *image* and colorize it. Remove any scratches.Change the photo to perfection. Keep the face and composition.\n\n⏩ Восстановление и колоризация фото 2\nRestore this photo to perfect condition.\n\n⏩ Удаление всех людей с изображения\nRemove all people in the background.\n\n⏩ Удалить провода\nRemove only wires\n\n➖ Удаление объектов\nУкажите объекты которые следует удалить.\nRemove the gray donkey from the image.  Naturally reconstruct the background details.\n\n⏩ Удаление водяных знаков\nОчищает сцену от мебели и предметов.\nRemove only visible watermarks such as superimposed text, logos, repeating patterns from this image.\n\n➖ Замена фона и интеграция персонажа в новый фон\nУкажите на какой фон перенести персонажа.\nIn the background is the Roman Colosseum, and the character fits naturally into the surrounding raw photo.\n\n⏩ В стиль Anime\nМожно изменить стиль на другой.\nMake *image* in anime style. Keep the character recognizable.\n\n⏩ В стиле детского рисунка\nМожно изменить стиль на другой.\n*image*. In the style of a child's drawing. Keep the character's face exactly.\n\n⏩ Раскрашивание BW рисунков\nДобавляет атмосферные погодные эффекты.\nAdding color to the illustrations in a black and white coloring book.\n\n⏩ Колоризация фото\nМожно указать оттенки или освещение.\nColorize this photo *image*.\n\n➖ Стилизация фото в DSLR HDR\n*image* можно удалить если не нужно описание.\nStylize this photo *image* into a professional DSLR HDR and professional light. Keep the character recognizable.\n\n➖ Старение фотографии\nМожно убрать BW (черно-белое).\nMake a very old bw photo. Add cracks, deep scratches, small dust particles, torn edges of paper, faded sepia tone. Satin texture. Light vignette. Fiber paper.\n\n➖ Извлечение одежды\nМожно детальнее описать одежду.\nExtract a plaid shirt onto a white background in a product photography style.\n\n➖ Outpaint (Lora: InScene-v1.0)\nВместо background нужно описать что будет на фоне.\nMake a shot of the same scene, but at a lower magnification, showing background.\n\n➖ Перенос лица (Lora: Overlay-Kontext-Dev-LoRA)\nПример: Place it a gray cat with a bucket of popcorn.\nPlace it woman face over with watercolor style.\n\n⏩ Для видов персонажа (Lora:  kontext-turnaround-sheet-v1)\n, 4 позы в полный рост на чистом белом фоне: вид спереди, 3/4 слева, вид сзади, справа — равномерно распределенные в чистом горизонтальном ряду.\nturnaround sheet of this exact character, 4 full-body poses on pure white background: front view, 3/4 left, back view, right — evenly spaced in a clean horizontal row, consistent lighting and style, no background noise, no shadows, same proportions and detailing across all views.\n\n⏩ Сделать ворсистым (Lora: fluffy-kontext-lora)\nВместо object нужно описать объект.\nMake the object fluffy."
-            ],
-            "color": "#233",
-            "bgcolor": "#355"
         },
         {
             "id": 277,
@@ -880,7 +579,7 @@
                 342.42376708984375
             ],
             "flags": {},
-            "order": 26,
+            "order": 24,
             "mode": 0,
             "inputs": [
                 {
@@ -909,7 +608,7 @@
                 }
             },
             "widgets_values": [
-                "Capture an overhead shot from behind the old man with long white hair and beard, focusing on the glowing orb in his hands, set against a clean studio background with soft diffused lighting to emphasize product detail and professionalism, suitable for a catalog."
+                "Remove the superimposed watermark text and any visible logos from the image while preserving the underlying details and textures."
             ],
             "color": "#2a363b",
             "bgcolor": "#3f5159"
@@ -926,7 +625,7 @@
                 233.37786865234375
             ],
             "flags": {},
-            "order": 18,
+            "order": 16,
             "mode": 0,
             "inputs": [
                 {
@@ -955,7 +654,7 @@
                 }
             },
             "widgets_values": [
-                "An old man with long white hair and a beard holds a glowing orb in his hands"
+                "A landscape photograph of a lake reflecting autumn foliage against a dark, ominous sky"
             ],
             "color": "#432",
             "bgcolor": "#653"
@@ -972,7 +671,7 @@
                 189
             ],
             "flags": {},
-            "order": 22,
+            "order": 20,
             "mode": 0,
             "inputs": [
                 {
@@ -1060,7 +759,7 @@
                 315.2724609375
             ],
             "flags": {},
-            "order": 23,
+            "order": 21,
             "mode": 0,
             "inputs": [
                 {
@@ -1089,48 +788,10 @@
                 }
             },
             "widgets_values": [
-                "You are a creative prompt engineer. Your mission is to analyze the provided image and generate a distinct image transformation instruction. Turn this image into the style of a professional product photo. Describe a scene that could show a different aspect of\nthe item in a highly professional catalog, including possible light settings, camera angles, zoom levels, or a scenario\nwhere the item is being used. Output only the transformation instruction, without any explanations, numbering, or extra text. Покажи Вид сверху сзади. Change the camera position for An old man with long white hair and a beard holds a glowing orb in his hands to reveal new aspects: e.g., top view of a room, side portrait view of a person, or an extreme close-up. . Your response must consist of concise instruction ready for the image editing AI. Do not add any conversational text, explanations, or deviations; only the instructions. Give your answer in one line without formatting, in English. Fit the answer into 512 tokens."
+                "You are a creative prompt engineer. Your mission is to analyze the provided image and generate exactly 1 distinct image transformation. Remove only visible watermarks such as superimposed text, logos, repeating patterns from this image. . Your response must consist of concise instruction ready for the image editing AI. Do not add any conversational text, explanations, or deviations; only the instructions. Give your answer in one line without formatting, in English. Fit the answer into 512 tokens."
             ],
             "color": "#232",
             "bgcolor": "#353"
-        },
-        {
-            "id": 292,
-            "type": "Fast Groups Muter (rgthree)",
-            "pos": [
-                -1373.89599609375,
-                1091.3414306640625
-            ],
-            "size": [
-                239.46438598632812,
-                86.0770034790039
-            ],
-            "flags": {},
-            "order": 2,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [
-                {
-                    "name": "OPT_CONNECTION",
-                    "type": "*",
-                    "links": null
-                }
-            ],
-            "properties": {
-                "matchColors": "",
-                "matchTitle": "FP",
-                "showNav": true,
-                "showAllGraphs": true,
-                "sort": "position",
-                "customSortAlphabet": "",
-                "toggleRestriction": "always one",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.0.1"
-                }
-            },
-            "color": "#5883e9",
-            "bgcolor": "#446fd5"
         },
         {
             "id": 293,
@@ -1146,7 +807,7 @@
             "flags": {
                 "collapsed": true
             },
-            "order": 20,
+            "order": 15,
             "mode": 0,
             "inputs": [
                 {
@@ -1216,7 +877,7 @@
             "flags": {
                 "collapsed": true
             },
-            "order": 34,
+            "order": 32,
             "mode": 0,
             "inputs": [
                 {
@@ -1254,101 +915,6 @@
             "bgcolor": "#653"
         },
         {
-            "id": 295,
-            "type": "Label (rgthree)",
-            "pos": [
-                -1661.1419677734375,
-                740.5084228515625
-            ],
-            "size": [
-                501.357421875,
-                60
-            ],
-            "flags": {
-                "pinned": true,
-                "allow_interaction": false
-            },
-            "order": 3,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [],
-            "title": "🤫STABLEDIF.RU",
-            "properties": {
-                "fontSize": 60,
-                "fontFamily": "Arial",
-                "fontColor": "#ffffff",
-                "textAlign": "left",
-                "backgroundColor": "transparent",
-                "padding": 0,
-                "borderRadius": 0,
-                "angle": 0,
-                "ue_properties": {
-                    "version": "7.0.1",
-                    "widget_ue_connectable": {}
-                }
-            },
-            "color": "#fff0",
-            "bgcolor": "#fff0"
-        },
-        {
-            "id": 296,
-            "type": "MarkdownNote",
-            "pos": [
-                -3057.6511278943735,
-                1447.679443359375
-            ],
-            "size": [
-                368.00030517578125,
-                472.210693359375
-            ],
-            "flags": {},
-            "order": 4,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [],
-            "title": "MY CONTACTS",
-            "properties": {
-                "ue_properties": {
-                    "version": "7.0.1",
-                    "widget_ue_connectable": {}
-                }
-            },
-            "widgets_values": [
-                "## ВИДЕО\n------------\n[**YOUTUBE**](https://youtu.be/kNpgkCkCYG4)\n\n[**RUTUBE**](https://rutube.ru/video/5de718a5a1962c7c09313282f6159302/)\n\n## МОИ ГРУППЫ\n------------\n[**BOOSTY**](https://boosty.to/stabledif/posts/f8650f46-01a5-4a21-94bd-792f1174359f?share=post_link)\n\n[**TELEGRAM КАНАЛ**](https://t.me/stabledif_lesson)\n\n[**TELEGRAM БОЛЬШОЙ ЧАТ**](https://t.me/stable_dif)\n\n[**ВКОНТАКТЕ**](https://vk.com/stabledif)\n\n[**GITHUB**](https://github.com/orex2121)\n\n\n## КУРС\n-----------\n\n[**Automatic1111**](https://stabledif.ru/)\n\n[**ComfyUI**](https://stabledif.ru/comfyUI)\n"
-            ],
-            "color": "#baf41a",
-            "bgcolor": "#a6e006",
-            "shape": 1
-        },
-        {
-            "id": 302,
-            "type": "Note",
-            "pos": [
-                -893.2291870117188,
-                1801.7955322265625
-            ],
-            "size": [
-                493.0174865722656,
-                636.8069458007812
-            ],
-            "flags": {},
-            "order": 5,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [],
-            "properties": {
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "Start_System Prompt\n\n---ОБЩИЙ СИСТЕМНЫЙ ПРОМПТ---\nYou are a creative prompt engineer. Your mission is to analyze the provided image and generate exactly 1 distinct image transformation.\n\n---КАРТОЧКА ТОВАРА---\nYou are a creative prompt engineer. Your mission is to analyze the provided image and generate a distinct image transformation instruction. Turn this image into the style of a professional product photo. Describe a scene that could show a different aspect of\nthe item in a highly professional catalog, including possible light settings, camera angles, zoom levels, or a scenario\nwhere the item is being used. Output only the transformation instruction, without any explanations, numbering, or extra text.\n"
-            ],
-            "color": "#432",
-            "bgcolor": "#653"
-        },
-        {
             "id": 303,
             "type": "ImageScale",
             "pos": [
@@ -1360,7 +926,7 @@
                 130
             ],
             "flags": {},
-            "order": 13,
+            "order": 14,
             "mode": 4,
             "inputs": [
                 {
@@ -1449,7 +1015,7 @@
                 106
             ],
             "flags": {},
-            "order": 6,
+            "order": 0,
             "mode": 0,
             "inputs": [
                 {
@@ -1519,7 +1085,7 @@
                 369
             ],
             "flags": {},
-            "order": 15,
+            "order": 13,
             "mode": 0,
             "inputs": [
                 {
@@ -1697,7 +1263,7 @@
                 130
             ],
             "flags": {},
-            "order": 7,
+            "order": 1,
             "mode": 0,
             "inputs": [
                 {
@@ -1780,6 +1346,459 @@
             "bgcolor": "#653"
         },
         {
+            "id": 297,
+            "type": "PathchSageAttentionKJ",
+            "pos": [
+                -1379.5213623046875,
+                1347.441162109375
+            ],
+            "size": [
+                270,
+                58
+            ],
+            "flags": {},
+            "order": 19,
+            "mode": 4,
+            "inputs": [
+                {
+                    "localized_name": "model",
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 557
+                },
+                {
+                    "localized_name": "sage_attention",
+                    "name": "sage_attention",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "sage_attention"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "MODEL",
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        558
+                    ]
+                }
+            ],
+            "properties": {
+                "cnr_id": "comfyui-kjnodes",
+                "ver": "1.1.3",
+                "Node name for S&R": "PathchSageAttentionKJ",
+                "ue_properties": {
+                    "widget_ue_connectable": {
+                        "sage_attention": true
+                    },
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "auto"
+            ],
+            "color": "#223",
+            "bgcolor": "#335"
+        },
+        {
+            "id": 184,
+            "type": "MarkdownNote",
+            "pos": [
+                -3184.6147509412485,
+                882.547607421875
+            ],
+            "size": [
+                510,
+                489.5400085449219
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [],
+            "title": "Model links",
+            "properties": {
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "**diffusion model**\n\n- [flux1-dev-kontext_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors)\n\n**vae**\n\n- [ae.safetensors](https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/blob/main/split_files/vae/ae.safetensors)\n\n**text encoder**\n\n- [clip_l.safetensors](https://huggingface.co/comfyanonymous/flux_text_encoders/blob/main/clip_l.safetensors)\n- [t5xxl_fp16.safetensors](https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors) or [t5xxl_fp8_e4m3fn_scaled.safetensors](https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn_scaled.safetensors)\n\nModel Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 diffusion_models/\n│   │   └── flux1-dev-kontext_fp8_scaled.safetensors\n│   ├── 📂 vae/\n│   │   └── ae.safetensor\n│   └── 📂 text_encoders/\n│       ├── clip_l.safetensors\n│       └── t5xxl_fp16.safetensors\n            t5xxl_fp8_e4m3fn_scaled.safetensors\n```\n"
+            ],
+            "color": "#432",
+            "bgcolor": "#653"
+        },
+        {
+            "id": 307,
+            "type": "Note",
+            "pos": [
+                -2218.0992491154097,
+                1273.7091505462747
+            ],
+            "size": [
+                223.45370000000003,
+                90.74610000000007
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [],
+            "properties": {
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.4.1",
+                    "input_ue_unconnectable": {}
+                }
+            },
+            "widgets_values": [
+                "InScene только для смены сцены и позы. В других случаях наложить bypass"
+            ],
+            "color": "#432",
+            "bgcolor": "#653"
+        },
+        {
+            "id": 272,
+            "type": "NunchakuFluxDiTLoader",
+            "pos": [
+                -1679.341064453125,
+                995.6484985351562
+            ],
+            "size": [
+                275.7613220214844,
+                202
+            ],
+            "flags": {},
+            "order": 4,
+            "mode": 2,
+            "inputs": [
+                {
+                    "localized_name": "model_path",
+                    "name": "model_path",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "model_path"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "cache_threshold",
+                    "name": "cache_threshold",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "cache_threshold"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "attention",
+                    "name": "attention",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "attention"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "cpu_offload",
+                    "name": "cpu_offload",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "cpu_offload"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "device_id",
+                    "name": "device_id",
+                    "type": "INT",
+                    "widget": {
+                        "name": "device_id"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "data_type",
+                    "name": "data_type",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "data_type"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "i2f_mode",
+                    "name": "i2f_mode",
+                    "shape": 7,
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "i2f_mode"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "MODEL",
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        497
+                    ]
+                }
+            ],
+            "properties": {
+                "cnr_id": "comfyui-nunchaku",
+                "ver": "0.3.4",
+                "Node name for S&R": "NunchakuFluxDiTLoader",
+                "ue_properties": {
+                    "widget_ue_connectable": {
+                        "model_path": true,
+                        "cache_threshold": true,
+                        "attention": true,
+                        "cpu_offload": true,
+                        "device_id": true,
+                        "data_type": true,
+                        "i2f_mode": true
+                    },
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "SVDQ\\svdq-int4_r32-flux.1-kontext-dev.safetensors",
+                0,
+                "nunchaku-fp16",
+                "enable",
+                0,
+                "bfloat16",
+                "enabled"
+            ]
+        },
+        {
+            "id": 271,
+            "type": "NunchakuFluxLoraLoader",
+            "pos": [
+                -1683.68701171875,
+                1279.4552001953125
+            ],
+            "size": [
+                289.0093688964844,
+                82
+            ],
+            "flags": {},
+            "order": 11,
+            "mode": 4,
+            "inputs": [
+                {
+                    "localized_name": "model",
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 497
+                },
+                {
+                    "localized_name": "lora_name",
+                    "name": "lora_name",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "lora_name"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "lora_strength",
+                    "name": "lora_strength",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "lora_strength"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "MODEL",
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        545
+                    ]
+                }
+            ],
+            "properties": {
+                "cnr_id": "comfyui-nunchaku",
+                "ver": "0.3.4",
+                "Node name for S&R": "NunchakuFluxLoraLoader",
+                "ue_properties": {
+                    "widget_ue_connectable": {
+                        "lora_name": true,
+                        "lora_strength": true
+                    },
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "Put it here_V4.2.safetensors",
+                1
+            ]
+        },
+        {
+            "id": 276,
+            "type": "ShowText|pysssss",
+            "pos": [
+                -1657.1417236328125,
+                2368.04443359375
+            ],
+            "size": [
+                389.2101135253906,
+                478.765869140625
+            ],
+            "flags": {},
+            "order": 22,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "text",
+                    "name": "text",
+                    "type": "STRING",
+                    "link": 533
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "STRING",
+                    "name": "STRING",
+                    "shape": 6,
+                    "type": "STRING",
+                    "links": null
+                }
+            ],
+            "title": "for MANUAL PROMPT 🐍",
+            "properties": {
+                "cnr_id": "comfyui-custom-scripts",
+                "ver": "1.2.5",
+                "Node name for S&R": "ShowText|pysssss",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "➖ Zoom: объекта сцены\nНазови элемент сцены на котором нужен Zoom.\nZoom on a head.\n\n➖ Relight — Изменяем освещение\nВиды освещений: Film Noir , Silhouette,   Dark,  Hard Lighting,  hard shadow , Golden Hour,  Blue,  Neon,  black and white,  night,  sepia.\nRelight *image* to Film Noir cinimatic.\n\n➖ Удалить всю мебель из комнаты\nУточните элементы, которые нужно удалить.\nRemove furniture, tables, cabinets, carpets from this photos.\n\n➖ Удалить весь текст\nУдаляет текст с постеров и изображений.\n⏩ Remove all languages text.\n\n➖ Заменить обои, пол и другие объекты интерьера\nУкажите что на что нужно заменить.\nChange the interior design to gray wallpaper and the floor to beige carpet.\n\n⏩ Фотография продукта\nУкажите окружение и(или) стиль для продукта.\nChange this photo to a professional product photo with a nature background.\n\n⏩ Восстановление и колоризация фото 1\nRestore *image* and colorize it. Remove any scratches.Change the photo to perfection. Keep the face and composition.\n\n⏩ Восстановление и колоризация фото 2\nRestore this photo to perfect condition.\n\n⏩ Удаление всех людей с изображения\nRemove all people in the background.\n\n⏩ Удалить провода\nRemove only wires\n\n➖ Удаление объектов\nУкажите объекты которые следует удалить.\nRemove the gray donkey from the image.  Naturally reconstruct the background details.\n\n⏩ Удаление водяных знаков\nОчищает сцену от мебели и предметов.\nRemove only visible watermarks such as superimposed text, logos, repeating patterns from this image.\n\n➖ Замена фона и интеграция персонажа в новый фон\nУкажите на какой фон перенести персонажа.\nIn the background is the Roman Colosseum, and the character fits naturally into the surrounding raw photo.\n\n⏩ В стиль Anime\nМожно изменить стиль на другой.\nMake *image* in anime style. Keep the character recognizable.\n\n⏩ В стиле детского рисунка\nМожно изменить стиль на другой.\n*image*. In the style of a child's drawing. Keep the character's face exactly.\n\n⏩ Раскрашивание BW рисунков\nДобавляет атмосферные погодные эффекты.\nAdding color to the illustrations in a black and white coloring book.\n\n⏩ Колоризация фото\nМожно указать оттенки или освещение.\nColorize this photo *image*.\n\n➖ Стилизация фото в DSLR HDR\n*image* можно удалить если не нужно описание.\nStylize this photo *image* into a professional DSLR HDR and professional light. Keep the character recognizable.\n\n➖ Старение фотографии\nМожно убрать BW (черно-белое).\nMake a very old bw photo. Add cracks, deep scratches, small dust particles, torn edges of paper, faded sepia tone. Satin texture. Light vignette. Fiber paper.\n\n➖ Извлечение одежды\nМожно детальнее описать одежду.\nExtract a plaid shirt onto a white background in a product photography style.\n\n➖ Outpaint (Lora: InScene-v1.0)\nВместо background нужно описать что будет на фоне.\nMake a shot of the same scene, but at a lower magnification, showing background.\n\n➖ Перенос лица (Lora: Overlay-Kontext-Dev-LoRA)\nПример: Place it a gray cat with a bucket of popcorn.\nPlace it woman face over with watercolor style.\n\n⏩ Для видов персонажа (Lora:  kontext-turnaround-sheet-v1)\n, 4 позы в полный рост на чистом белом фоне: вид спереди, 3/4 слева, вид сзади, справа — равномерно распределенные в чистом горизонтальном ряду.\nturnaround sheet of this exact character, 4 full-body poses on pure white background: front view, 3/4 left, back view, right — evenly spaced in a clean horizontal row, consistent lighting and style, no background noise, no shadows, same proportions and detailing across all views.\n\n⏩ Сделать ворсистым (Lora: fluffy-kontext-lora)\nВместо object нужно описать объект.\nMake the object fluffy."
+            ],
+            "color": "#233",
+            "bgcolor": "#355"
+        },
+        {
+            "id": 292,
+            "type": "Fast Groups Muter (rgthree)",
+            "pos": [
+                -1373.89599609375,
+                1091.3414306640625
+            ],
+            "size": [
+                239.46438598632812,
+                86.0770034790039
+            ],
+            "flags": {},
+            "order": 5,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "OPT_CONNECTION",
+                    "type": "*",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "matchColors": "",
+                "matchTitle": "FP",
+                "showNav": true,
+                "showAllGraphs": true,
+                "sort": "position",
+                "customSortAlphabet": "",
+                "toggleRestriction": "always one",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.0.1"
+                }
+            },
+            "color": "#5883e9",
+            "bgcolor": "#446fd5"
+        },
+        {
+            "id": 257,
+            "type": "LoraLoaderModelOnly",
+            "pos": [
+                -1980.3577982421882,
+                1281.5507448828125
+            ],
+            "size": [
+                270,
+                82
+            ],
+            "flags": {},
+            "order": 12,
+            "mode": 4,
+            "inputs": [
+                {
+                    "label": "model",
+                    "localized_name": "model",
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 504
+                },
+                {
+                    "localized_name": "lora_name",
+                    "name": "lora_name",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "lora_name"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "strength_model",
+                    "name": "strength_model",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "strength_model"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "label": "MODEL",
+                    "localized_name": "MODEL",
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        544
+                    ]
+                }
+            ],
+            "properties": {
+                "cnr_id": "comfy-core",
+                "ver": "0.3.43",
+                "Node name for S&R": "LoraLoaderModelOnly",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "InScene-v1.0.safetensors",
+                1
+            ],
+            "color": "#432",
+            "bgcolor": "#653"
+        },
+        {
             "id": 37,
             "type": "UNETLoader",
             "pos": [
@@ -1791,7 +1810,7 @@
                 82
             ],
             "flags": {},
-            "order": 8,
+            "order": 6,
             "mode": 0,
             "inputs": [
                 {
@@ -1841,67 +1860,9 @@
                 }
             },
             "widgets_values": [
-                "Kontext\\flux1-kontext-dev-fp8.safetensors",
+                "flux1-dev-kontext_fp8_scaled.safetensors",
                 "default"
             ]
-        },
-        {
-            "id": 297,
-            "type": "PathchSageAttentionKJ",
-            "pos": [
-                -1379.5213623046875,
-                1347.441162109375
-            ],
-            "size": [
-                270,
-                58
-            ],
-            "flags": {},
-            "order": 25,
-            "mode": 4,
-            "inputs": [
-                {
-                    "localized_name": "model",
-                    "name": "model",
-                    "type": "MODEL",
-                    "link": 557
-                },
-                {
-                    "localized_name": "sage_attention",
-                    "name": "sage_attention",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "sage_attention"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "MODEL",
-                    "name": "MODEL",
-                    "type": "MODEL",
-                    "links": [
-                        558
-                    ]
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfyui-kjnodes",
-                "ver": "1.1.3",
-                "Node name for S&R": "PathchSageAttentionKJ",
-                "ue_properties": {
-                    "widget_ue_connectable": {
-                        "sage_attention": true
-                    },
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "auto"
-            ],
-            "color": "#223",
-            "bgcolor": "#335"
         },
         {
             "id": 38,
@@ -1915,7 +1876,7 @@
                 130
             ],
             "flags": {},
-            "order": 9,
+            "order": 7,
             "mode": 0,
             "inputs": [
                 {
@@ -2007,7 +1968,7 @@
                 58
             ],
             "flags": {},
-            "order": 10,
+            "order": 8,
             "mode": 0,
             "inputs": [
                 {
@@ -2049,26 +2010,95 @@
                 }
             },
             "widgets_values": [
-                "Flux-vae-fp16.safetensors"
+                "Flux-vae.safetensors"
             ]
         },
         {
-            "id": 184,
-            "type": "MarkdownNote",
+            "id": 204,
+            "type": "LoadImage",
             "pos": [
-                -3184.6147509412485,
-                882.547607421875
+                -2618.7857570293736,
+                937.20703125
             ],
             "size": [
-                510,
-                489.5400085449219
+                274.080078125,
+                314
             ],
             "flags": {},
-            "order": 11,
+            "order": 9,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "image",
+                    "name": "image",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "image"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "choose file to upload",
+                    "name": "upload",
+                    "type": "IMAGEUPLOAD",
+                    "widget": {
+                        "name": "upload"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "label": "IMAGE",
+                    "localized_name": "IMAGE",
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        499,
+                        517,
+                        815
+                    ]
+                },
+                {
+                    "label": "MASK",
+                    "localized_name": "MASK",
+                    "name": "MASK",
+                    "type": "MASK",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "cnr_id": "comfy-core",
+                "ver": "0.3.43",
+                "Node name for S&R": "LoadImage",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.0.1"
+                }
+            },
+            "widgets_values": [
+                "gemini-natezeman-before-67d8a77522656198e0273de6.webp",
+                "image"
+            ],
+            "color": "#3f6dca",
+            "bgcolor": "#2b59b6"
+        },
+        {
+            "id": 302,
+            "type": "Note",
+            "pos": [
+                -893.2291870117188,
+                1801.7955322265625
+            ],
+            "size": [
+                493.0174865722656,
+                636.8069458007812
+            ],
+            "flags": {},
+            "order": 10,
             "mode": 0,
             "inputs": [],
             "outputs": [],
-            "title": "Model links",
             "properties": {
                 "ue_properties": {
                     "widget_ue_connectable": {},
@@ -2076,36 +2106,7 @@
                 }
             },
             "widgets_values": [
-                "**diffusion model**\n\n- [flux1-dev-kontext_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors)\n\n**vae**\n\n- [ae.safetensors](https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/blob/main/split_files/vae/ae.safetensors)\n\n**text encoder**\n\n- [clip_l.safetensors](https://huggingface.co/comfyanonymous/flux_text_encoders/blob/main/clip_l.safetensors)\n- [t5xxl_fp16.safetensors](https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors) or [t5xxl_fp8_e4m3fn_scaled.safetensors](https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn_scaled.safetensors)\n\nModel Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 diffusion_models/\n│   │   └── flux1-dev-kontext_fp8_scaled.safetensors\n│   ├── 📂 vae/\n│   │   └── ae.safetensor\n│   └── 📂 text_encoders/\n│       ├── clip_l.safetensors\n│       └── t5xxl_fp16.safetensors\n            t5xxl_fp8_e4m3fn_scaled.safetensors\n```\n"
-            ],
-            "color": "#432",
-            "bgcolor": "#653"
-        },
-        {
-            "id": 307,
-            "type": "Note",
-            "pos": [
-                -2218.0992491154097,
-                1273.7091505462747
-            ],
-            "size": [
-                223.45370000000003,
-                90.74610000000007
-            ],
-            "flags": {},
-            "order": 12,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [],
-            "properties": {
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.4.1",
-                    "input_ue_unconnectable": {}
-                }
-            },
-            "widgets_values": [
-                "InScene только для смены сцены и позы. В других случаях наложить bypass"
+                "Start_System Prompt\n\n---ОБЩИЙ СИСТЕМНЫЙ ПРОМПТ---\nYou are a creative prompt engineer. Your mission is to analyze the provided image and generate exactly 1 distinct image transformation.\n\n---КАРТОЧКА ТОВАРА---\nYou are a creative prompt engineer. Your mission is to analyze the provided image and generate a distinct image transformation instruction. Turn this image into the style of a professional product photo. Describe a scene that could show a different aspect of\nthe item in a highly professional catalog, including possible light settings, camera angles, zoom levels, or a scenario\nwhere the item is being used. Output only the transformation instruction, without any explanations, numbering, or extra text.\n"
             ],
             "color": "#432",
             "bgcolor": "#653"
@@ -2122,7 +2123,7 @@
                 478
             ],
             "flags": {},
-            "order": 19,
+            "order": 17,
             "mode": 0,
             "inputs": [
                 {
@@ -2242,85 +2243,17 @@
                 }
             },
             "widgets_values": [
-                "You are a creative prompt engineer. Your mission is to analyze the provided image and generate a distinct image transformation instruction. Turn this image into the style of a professional product photo. Describe a scene that could show a different aspect of\nthe item in a highly professional catalog, including possible light settings, camera angles, zoom levels, or a scenario\nwhere the item is being used. Output only the transformation instruction, without any explanations, numbering, or extra text.",
+                "You are a creative prompt engineer. Your mission is to analyze the provided image and generate exactly 1 distinct image transformation.",
                 "",
-                true,
                 false,
-                "Move Camera — Перемещение камеры",
+                false,
+                "Product — Предметная съёмка",
                 true,
                 "⏩ Удаление водяных знаков",
                 ". Your response must consist of concise instruction ready for the image editing AI. Do not add any conversational text, explanations, or deviations; only the instructions. Give your answer in one line without formatting, in English. Fit the answer into 512 tokens."
             ],
             "color": "#232",
             "bgcolor": "#353"
-        },
-        {
-            "id": 257,
-            "type": "LoraLoaderModelOnly",
-            "pos": [
-                -1980.3577982421882,
-                1281.5507448828125
-            ],
-            "size": [
-                270,
-                82
-            ],
-            "flags": {},
-            "order": 16,
-            "mode": 4,
-            "inputs": [
-                {
-                    "label": "model",
-                    "localized_name": "model",
-                    "name": "model",
-                    "type": "MODEL",
-                    "link": 504
-                },
-                {
-                    "localized_name": "lora_name",
-                    "name": "lora_name",
-                    "type": "COMBO",
-                    "widget": {
-                        "name": "lora_name"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "strength_model",
-                    "name": "strength_model",
-                    "type": "FLOAT",
-                    "widget": {
-                        "name": "strength_model"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "label": "MODEL",
-                    "localized_name": "MODEL",
-                    "name": "MODEL",
-                    "type": "MODEL",
-                    "links": [
-                        544
-                    ]
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfy-core",
-                "ver": "0.3.43",
-                "Node name for S&R": "LoraLoaderModelOnly",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.0.1"
-                }
-            },
-            "widgets_values": [
-                "KONTEXT\\InScene-v1.0.safetensors",
-                1
-            ],
-            "color": "#432",
-            "bgcolor": "#653"
         }
     ],
     "links": [
@@ -2677,10 +2610,10 @@
     "config": {},
     "extra": {
         "ds": {
-            "scale": 0.7513148009015781,
+            "scale": 0.7400249944258219,
             "offset": [
-                2985.5868714412495,
-                -880.5594047515641
+                2064.873028567595,
+                -785.0930004977835
             ]
         },
         "frontendVersion": "1.24.4",

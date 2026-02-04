@@ -20,6 +20,7 @@ from app.core.security import hash_password
 from app.services.workflow_spec_validator import validate_workflow_spec
 from app.services.spec_generator import generate_spec_v2
 from app.services.parse_json import parse_json_field
+from app.services.comfy_client import get_object_info
 
 
 router = APIRouter(prefix='/admin', tags=['admin-ui'])
@@ -548,8 +549,22 @@ async def admin_workflow_upload_generate_spec(
             status_code=400
         )
     
+    # Берём любую активную ноду
+    node_res = await db.execute(
+        select(ComfyNode)
+        .where(ComfyNode.is_active == True)
+        .order_by(ComfyNode.last_seen.desc())
+        .limit(1)
+    )
+    node = node_res.scalars().first()
+
+    object_info = {}
+    if node:
+        object_info = await get_object_info(node=node)
+    
     # Генерация spec
-    spec = generate_spec_v2(workflow_data)
+    # spec = generate_spec_v2(workflow_data)
+    spec = generate_spec_v2(workflow_data, object_info=object_info)
 
     workflow_obj = parse_json_field(workflow_json, 'workflow_json')
 
@@ -594,7 +609,23 @@ async def admin_workflow_generate_spec(
         raise HTTPException(status_code=404, detail='Workflow not found')
     
     # Генерация Spec v2
-    spec = generate_spec_v2(workflow.workflow_json)
+    # spec = generate_spec_v2(workflow.workflow_json)
+
+    # Берём любую активную ноду
+    node_res = await db.execute(
+        select(ComfyNode)
+        .where(ComfyNode.is_active == True)
+        .order_by(ComfyNode.last_seen.desc())
+        .limit(1)
+    )
+    node = node_res.scalars().first()
+
+    object_info = {}
+    if node:
+        object_info = await get_object_info(node=node)
+    
+    # Генерация spec
+    spec = generate_spec_v2(workflow.workflow_json, object_info=object_info)
 
     # Валидация (важно!)
     validate_workflow_spec(spec)
@@ -604,6 +635,7 @@ async def admin_workflow_generate_spec(
     workflow.requires_mask = bool(spec['inputs'].get('mask'))
 
     await db.commit()
+    await db.refresh(workflow)
 
     return RedirectResponse(
         url=f'/admin/workflows/{workflow.id}/edit',

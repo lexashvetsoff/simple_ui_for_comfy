@@ -1,3 +1,4 @@
+import json
 import asyncio
 from datetime import datetime
 from sqlalchemy import select
@@ -9,6 +10,11 @@ from app.models.comfy_node import ComfyNode
 from app.services.comfy_client import submit_workflow
 from app.services.comfy_client import get_prompt_result
 from app.services.comfy_prompt_builder import build_prompt_from_ui_workflow
+from app.services.sanitize_comfy_prompt import sanitize_prompt_for_comfy
+from app.services.comfy_client import get_object_info
+from app.services.comfy_prompt_builder_v2 import build_prompt_from_ui_workflow_v2
+from app.services.comfy_prompt_validate import validate_and_fix_prompt
+from app.services.comfy_prepare_prompt import upload_and_patch_images
 
 
 async def select_avilable_node(
@@ -79,12 +85,48 @@ async def scheduler_tick(
         await db.refresh(execution)
 
         # 4. Отправляем в ComfyUI
-        prompt = build_prompt_from_ui_workflow(job.prepared_workflow)
+
+        # prompt = build_prompt_from_ui_workflow(job.prepared_workflow)
+        # sanitize_prompt = sanitize_prompt_for_comfy(prompt)
+        try:
+            # object_info = await get_object_info(node.base_url)
+            object_info = await get_object_info(node=node)
+        except Exception as e:
+            print(e)
+            # fallback на старое поведение (чтобы не ломать то, что работало)
+            prompt = build_prompt_from_ui_workflow(job.prepared_workflow)
+            sanitize_prompt = sanitize_prompt_for_comfy(prompt)
+        else:
+            # Новый безопасный путь
+            prompt = build_prompt_from_ui_workflow_v2(job.prepared_workflow, object_info)
+
+            # Upload images to Comfy + patch LoadImage inputs.image
+            prompt = await upload_and_patch_images(
+                base_url=node.base_url,
+                prompt_payload=prompt,
+                stored_files=job.files or {}
+            )
+
+            # Fix combo/default + types
+            prompt, warnings = validate_and_fix_prompt(prompt, object_info)
+            # print("prompt warnings:", warnings)
+
+            sanitize_prompt = sanitize_prompt_for_comfy(prompt)
+        
+        # with open('prompt.json', 'w', encoding='utf-8') as f:
+        #     json.dump(prompt, f, ensure_ascii=False, )
+        # sanitize_prompt['extra_pnginfo'] = [{'workflow': job.prepared_workflow}]
+        sanitize_prompt['extra_pnginfo'] = {'workflow': job.prepared_workflow}
+
+        with open('sanitize_prompt.json', 'w', encoding='utf-8') as f:
+            json.dump(sanitize_prompt, f, ensure_ascii=False, )
+
         try:
             prompt_id = await submit_workflow(
                 node=node,
                 # workflow=job.prepared_workflow
-                workflow=prompt
+                # workflow=prompt
+                workflow=sanitize_prompt
             )
 
             execution.prompt_id = prompt_id

@@ -1,0 +1,82 @@
+Using xformers attention in VAE
+Using xformers attention in VAE
+VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
+Florence2 using sdpa for attention
+</s><s>a smiling asian man in a white lab coat holding a bottle of pills in a pharmacy</s>
+Offloading model...
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+Requested to load AutoencodingEngine
+loaded completely; 2925.39 MB usable, 159.87 MB loaded, full load: True
+[MultiGPU Core Patching] text_encoder_device_patched returning device: cuda:0 (current_text_encoder_device=cuda:0)
+CLIP/text encoder model load device: cuda:0, offload device: cpu, current: cpu, dtype: torch.float16
+clip missing: ['text_projection.weight']
+Requested to load FluxClipModel_
+loaded partially; 5605.68 MB usable, 5605.67 MB loaded, 3713.22 MB offloaded, lowvram patches: 0
+Using scaled fp8: fp8 matrix mult: False, scale input: True
+model weight dtype torch.bfloat16, manual cast: None
+model_type FLUX
+Requested to load Flux
+loaded partially; 4413.10 MB usable, 4412.98 MB loaded, 6937.11 MB offloaded, lowvram patches: 229
+Patching comfy attention to use sageattn
+Restoring initial comfy attention
+!!! Exception during processing !!! No module named 'sageattention'
+Traceback (most recent call last):
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\execution.py", line 510, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, hidden_inputs=hidden_inputs)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\execution.py", line 324, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, hidden_inputs=hidden_inputs)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\custom_nodes\comfyui-lora-manager\py\metadata_collector\metadata_hook.py", line 165, in async_map_node_over_list_with_metadata
+    results = await original_map_node_over_list(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\execution.py", line 298, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\execution.py", line 286, in process_inputs
+    result = f(**inputs)
+             ^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\nodes.py", line 1525, in sample
+    return common_ksampler(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\nodes.py", line 1492, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\custom_nodes\Comfyui-StableSR\nodes.py", line 69, in hook_sample
+    return original_sample(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\sample.py", line 60, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\custom_nodes\ComfyUI-TiledDiffusion\utils.py", line 51, in KSampler_sample
+    return orig_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\samplers.py", line 1163, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\samplers.py", line 1053, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\samplers.py", line 1035, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\samplers.py", line 996, in outer_sample
+    self.model_patcher.pre_run()
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\comfy\model_patcher.py", line 1087, in pre_run
+    callback(self)
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\python_embeded\Lib\site-packages\torch\_dynamo\eval_frame.py", line 838, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\custom_nodes\comfyui-kjnodes\nodes\model_optimization_nodes.py", line 239, in patch_attention_enable
+    self._patch_modules(False, sage_attention)
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\python_embeded\Lib\site-packages\torch\_dynamo\eval_frame.py", line 838, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\ComfyUI-StableDif-t27-p312-cu128-v2.2\ComfyUI\custom_nodes\comfyui-kjnodes\nodes\model_optimization_nodes.py", line 95, in _patch_modules
+    from sageattention import sageattn
+ModuleNotFoundError: No module named 'sageattention'

@@ -1,4 +1,5 @@
 import uuid
+import json
 from datetime import datetime
 from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -17,6 +18,7 @@ from app.services.workflow_mapper import normalize_workflow_for_comfy
 from app.services.scheduler import enqueue_job
 from app.schemas.workflow_spec_v2 import WorkflowSpecV2
 from app.services.spec_grooping import prepare_spec_groups
+from app.services.comfy_service import _patch_widget_fields_for_seed_in_spec
 
 
 router = APIRouter(prefix='/user/workflows', tags=['user-workflows'])
@@ -88,6 +90,12 @@ async def run_workflow(
         raise HTTPException(status_code=404, detail='Workflow not found')
     
     # spec = workflow.spec_json
+    # patch_spec = _patch_widget_fields_for_seed_in_spec(workflow.spec_json)
+
+    # patch_spec = _patch_widget_fields_for_seed_in_spec(patch_spec)
+    # with open('patch_spec.json', 'w') as f:
+    #     json.dump(patch_spec, f)
+    
     spec = WorkflowSpecV2.model_validate(workflow.spec_json)
 
     # 2. Check limits

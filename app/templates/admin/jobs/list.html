@@ -1,38 +1,77 @@
 {% extends 'admin/base.html' %}
-
 {% block content %}
 
 <h2>Jobs</h2>
 
-<table border="1" cellpadding="6" cellspacing="0">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Workflow</th>
-            <th>Slug</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for job, user, workflow in jobs %}
-            <tr>
-                <td>{{ job.id[:8] }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ workflow.name }}</td>
-                <td>{{ workflow.slug }}</td>
-                <td>{{ job.status }}</td>
-                <td>{{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-                <td><a href="/admin/jobs/{{ job.id }}">View</a></td>
-            </tr>
-        {% else %}
-            <tr>
-                <td>No jobs yet</td>
-            </tr>
-        {% endfor %}
-    </tbody>
+<form method="get" style="margin-bottom: 12px;">
+  <input type="text" name="q" placeholder="search id/email/slug" value="{{ filters.q }}" />
+  <input type="text" name="workflow" placeholder="workflow slug" value="{{ filters.workflow }}" />
+  <input type="text" name="user" placeholder="user email or id" value="{{ filters.user }}" />
+
+  <select name="status">
+    <option value="" {% if not filters.status %}selected{% endif %}>Any status</option>
+    {% for s in ["QUEUED","RUNNING","DONE","ERROR"] %}
+      <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="limit">
+    {% for n in [25,50,100,200] %}
+      <option value="{{ n }}" {% if limit == n %}selected{% endif %}>{{ n }}/page</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Filter</button>
+  <a href="/admin/jobs">Reset</a>
+</form>
+
+<p style="margin: 6px 0;">Total: <b>{{ total }}</b> · Showing {{ jobs|length }} · Offset {{ offset }}</p>
+
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>User</th>
+      <th>Workflow</th>
+      <th>Slug</th>
+      <th>Status</th>
+      <th>Created</th>
+      <th>Error</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for job, user, workflow in jobs %}
+      <tr>
+        <td><code>{{ job.id[:8] }}</code></td>
+        <td>{{ user.email }}</td>
+        <td>{{ workflow.name }}</td>
+        <td><code>{{ workflow.slug }}</code></td>
+        <td><b>{{ job.status }}</b></td>
+        <td>{{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else "-" }}</td>
+        <td style="max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {% if job.error_message %}{{ job.error_message }}{% else %}-{% endif %}
+        </td>
+        <td><a href="/admin/jobs/{{ job.id }}">View</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8">No jobs yet</td></tr>
+    {% endfor %}
+  </tbody>
 </table>
+
+<div style="margin-top: 12px;">
+  {% set prev_offset = offset - limit %}
+  {% set next_offset = offset + limit %}
+
+  {% if prev_offset >= 0 %}
+    <a href="?q={{ filters.q }}&workflow={{ filters.workflow }}&user={{ filters.user }}&status={{ filters.status }}&limit={{ limit }}&offset={{ prev_offset }}">← Prev</a>
+  {% endif %}
+
+  {% if next_offset < total %}
+    {% if prev_offset >= 0 %} | {% endif %}
+    <a href="?q={{ filters.q }}&workflow={{ filters.workflow }}&user={{ filters.user }}&status={{ filters.status }}&limit={{ limit }}&offset={{ next_offset }}">Next →</a>
+  {% endif %}
+</div>
 
 {% endblock %}

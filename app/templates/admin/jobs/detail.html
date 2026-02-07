@@ -1,51 +1,93 @@
 {% extends 'admin/base.html' %}
-
 {% block content %}
 
-<h1>Job #{{ job.id }}</h1>
+<h1>Job <code>{{ job.id }}</code></h1>
 
 <section>
-    <h3>Status</h3>
-    <p>
-        <strong>{{ job.status }}</strong>
-    </p>
+  <h3>Status</h3>
+  <p><strong>{{ job.status }}</strong></p>
 </section>
 
 <section>
-    <h3>Meta</h3>
-    <ul>
-        <li><b>User:</b> {{ job.user_id }}</li>
-        <li><b>Workflow:</b> {{ job.workflow_id }}</li>
-        <li><b>Node:</b> {{ job.node_id }}</li>
-        <li><b>Created:</b> {{ job.created_a }}</li>
-        <li><b>Finished:</b> {{ job.finished_at or "-" }}</li>
-    </ul>
-</section>
-
-<section>
-    <h3>Inputs</h3>
-    <pre>{{ job.inputs | tojson(indent=2) }}</pre>
-</section>
-
-<section>
-    <h3>Resolved Payload</h3>
-    <pre>{{ job.prepared_workflow | tojson(indent=2) }}</pre>
-</section>
-
-<section>
-    <h3>Outputs</h3>
-    {% if job.result %}
-        <pre>{{ job.result | tojson(indent=2) }}</pre>
-    {% else %}
-        <p>No outputs yet</p>
-    {% endif %}
+  <h3>Meta</h3>
+  <ul>
+    <li><b>User:</b> {{ job_user.email }} <code>{{ job.user_id }}</code></li>
+    <li><b>Workflow:</b> {{ workflow.name }} (<code>{{ workflow.slug }}</code>) · <code>{{ job.workflow_id }}</code></li>
+    <li><b>Node:</b> <code>{{ job.node_id or "-" }}</code></li>
+    <li><b>Created:</b> {{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else "-" }}</li>
+    <li><b>Finished:</b> {{ job.finished_at.strftime("%Y-%m-%d %H:%M:%S") if job.finished_at else "-" }}</li>
+  </ul>
 </section>
 
 {% if job.error_message %}
 <section>
-    <h3>Error</h3>
-    <pre style="color: red">{{ job.error_message }}</pre>
+  <h3 style="color:#b00;">Error</h3>
+  <pre style="color:#b00; white-space: pre-wrap;">{{ job.error_message }}</pre>
 </section>
 {% endif %}
+
+<section>
+  <h3>Executions</h3>
+  {% if executions and executions|length > 0 %}
+    <table border="1" cellpadding="6" cellspacing="0" width="100%">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Status</th>
+          <th>Node</th>
+          <th>Prompt</th>
+          <th>Started</th>
+          <th>Finished</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in executions %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><b>{{ e.status }}</b></td>
+            <td><code>{{ e.node_id or "-" }}</code></td>
+            <td><code>{{ e.prompt_id or "-" }}</code></td>
+            <td>{{ e.started_at.strftime("%Y-%m-%d %H:%M:%S") if e.started_at else "-" }}</td>
+            <td>{{ e.finished_at.strftime("%Y-%m-%d %H:%M:%S") if e.finished_at else "-" }}</td>
+            <td style="max-width: 520px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {% if e.error_message %}{{ e.error_message }}{% else %}-{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No executions yet</p>
+  {% endif %}
+</section>
+
+<section>
+  <h3>Inputs</h3>
+  <details open>
+    <summary>Show JSON</summary>
+    <pre>{{ (job.inputs or {}) | tojson(indent=2) }}</pre>
+  </details>
+</section>
+
+<section>
+  <h3>Prepared workflow</h3>
+  <details>
+    <summary>Show JSON</summary>
+    <pre>{{ (job.prepared_workflow or {}) | tojson(indent=2) }}</pre>
+  </details>
+</section>
+
+<section>
+  <h3>Result</h3>
+  {% if job.result %}
+    <details open>
+      <summary>Show JSON</summary>
+      <pre>{{ job.result | tojson(indent=2) }}</pre>
+    </details>
+  {% else %}
+    <p>No outputs yet</p>
+  {% endif %}
+</section>
 
 {% endblock %}

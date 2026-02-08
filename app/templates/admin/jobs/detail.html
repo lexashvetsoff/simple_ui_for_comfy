@@ -13,11 +13,9 @@
   <ul>
     <li><b>User:</b> {{ job_user.email }} <code>{{ job.user_id }}</code></li>
     <li><b>Workflow:</b> {{ workflow.name }} (<code>{{ workflow.slug }}</code>) · <code>{{ job.workflow_id }}</code></li>
-    <li><b>Node:</b> <code>{{ job.node_id or "-" }}</code></li>
     <li><b>Created:</b> {{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else "-" }}</li>
-    <li><b>Finished:</b> {{ job.finished_at.strftime("%Y-%m-%d %H:%M:%S") if job.finished_at else "-" }}</li>
   </ul>
-</section>
+</section> 
 
 {% if job.error_message %}
 <section>

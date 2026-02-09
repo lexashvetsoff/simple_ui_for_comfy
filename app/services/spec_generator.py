@@ -16,6 +16,11 @@ IMAGE_NODE_TYPES = {
 }
 
 
+MASK_NODE_TYPES = {
+    "LoadMask",
+}
+
+
 OUTPUT_NODE_TYPES = {
     "SaveImage",
     "PreviewImage",
@@ -416,6 +421,19 @@ def generate_spec_v2(workflow_json: Dict[str, Any], object_info: Dict[str, Any] 
                 }
             )
             # важно: НЕ добавляем param_204_* и т.п.
+            continue
+
+        # MASK
+        if class_type in MASK_NODE_TYPES:
+            spec["inputs"]["mask"] = {
+                "key": f"mask_{node_id}",
+                "label": "Mask",
+                "modes": ["default"],
+                "view": "view",
+                "required": True,  # можно сделать False, но для LoadMask логичнее True
+                "binding": {"node_id": node_id, "field": "widget_0"},
+            }
+            # важно: НЕ добавляем параметры этого узла
             continue
 
         # PARAMS

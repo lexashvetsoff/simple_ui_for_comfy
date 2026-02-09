@@ -44,17 +44,36 @@ def prepare_workflow_catalog_item(
                 mode_labels.append(label)
     
     # ---- COMPLEXITY ----
+    # score = 0
+    # score += len(inputs.get('text', []))
+    # score += len(inputs.get('images', []))
+    # score += len(inputs.get('params', []))
+
     score = 0
-    score += len(inputs.get('text', []))
-    score += len(inputs.get('images', []))
-    score += len(inputs.get('params', []))
+
+    text_inputs = inputs.get('text', [])
+    for item in text_inputs:
+        if item['view'] == 'view':
+            score += 1
+    
+    images_inputs = inputs.get('images', [])
+    for item in images_inputs:
+        if item['view'] == 'view':
+            score += 1
+    
+    params_inputs = inputs.get('params', [])
+    for item in params_inputs:
+        if item['view'] == 'view':
+            score += 1
 
     if workflow.requires_mask:
         score += 2
     
-    if score <= 20:
+    # print(score)
+
+    if score <= 4:
         complexity = COMPLEXITY_SIMPLE
-    elif score <= 35:
+    elif score <= 8:
         complexity = COMPLEXITY_MEDIUM
     else:
         complexity = COMPLEXITY_ADVANCED

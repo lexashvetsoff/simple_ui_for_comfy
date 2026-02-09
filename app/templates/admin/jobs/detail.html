@@ -11,22 +11,24 @@
 <section>
   <h3>Meta</h3>
   <ul>
-    <li><b>User:</b> {{ job_user.email }} <code>{{ job.user_id }}</code></li>
+    <li><b>User:</b> {{ job_user.email }} (<code>{{ job.user_id }}</code>)</li>
     <li><b>Workflow:</b> {{ workflow.name }} (<code>{{ workflow.slug }}</code>) · <code>{{ job.workflow_id }}</code></li>
+    <li><b>Mode:</b> <code>{{ job.mode }}</code></li>
     <li><b>Created:</b> {{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else "-" }}</li>
+    <li><b>Finished:</b> {{ computed_finished_at.strftime("%Y-%m-%d %H:%M:%S") if computed_finished_at else "-" }}</li>
   </ul>
-</section> 
+</section>
 
 {% if job.error_message %}
 <section>
-  <h3 style="color:#b00;">Error</h3>
+  <h3 style="color:#b00;">Job error</h3>
   <pre style="color:#b00; white-space: pre-wrap;">{{ job.error_message }}</pre>
 </section>
 {% endif %}
 
 <section>
   <h3>Executions</h3>
-  {% if executions and executions|length > 0 %}
+  {% if exec_rows and exec_rows|length > 0 %}
     <table border="1" cellpadding="6" cellspacing="0" width="100%">
       <thead>
         <tr>
@@ -40,11 +42,17 @@
         </tr>
       </thead>
       <tbody>
-        {% for e in executions %}
+        {% for e, node in exec_rows %}
           <tr>
             <td>{{ loop.index }}</td>
             <td><b>{{ e.status }}</b></td>
-            <td><code>{{ e.node_id or "-" }}</code></td>
+            <td>
+              {% if node %}
+                {{ node.name }} (<code>{{ e.node_id }}</code>)
+              {% else %}
+                <code>{{ e.node_id or "-" }}</code>
+              {% endif %}
+            </td>
             <td><code>{{ e.prompt_id or "-" }}</code></td>
             <td>{{ e.started_at.strftime("%Y-%m-%d %H:%M:%S") if e.started_at else "-" }}</td>
             <td>{{ e.finished_at.strftime("%Y-%m-%d %H:%M:%S") if e.finished_at else "-" }}</td>
@@ -65,6 +73,14 @@
   <details open>
     <summary>Show JSON</summary>
     <pre>{{ (job.inputs or {}) | tojson(indent=2) }}</pre>
+  </details>
+</section>
+
+<section>
+  <h3>Files</h3>
+  <details>
+    <summary>Show JSON</summary>
+    <pre>{{ (job.files or {}) | tojson(indent=2) }}</pre>
   </details>
 </section>
 

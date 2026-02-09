@@ -1,0 +1,63 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+
+<h2>Jobs / Scheduler health</h2>
+
+<form method="get" style="margin-bottom: 12px;">
+  <label>Window (minutes):</label>
+  <input type="number" name="minutes" value="{{ minutes }}" min="5" max="1440" />
+  <button type="submit">Apply</button>
+  &nbsp;|&nbsp;
+  <a href="/admin/jobs">Back to jobs</a>
+</form>
+
+<p>Stats since: <code>{{ since.strftime("%Y-%m-%d %H:%M:%S") }}</code></p>
+
+<h3>Jobs created in window</h3>
+<ul>
+  <li>QUEUED: <b>{{ jobs_stats.get("QUEUED", 0) }}</b></li>
+  <li>RUNNING: <b>{{ jobs_stats.get("RUNNING", 0) }}</b></li>
+  <li>DONE: <b>{{ jobs_stats.get("DONE", 0) }}</b></li>
+  <li>ERROR: <b>{{ jobs_stats.get("ERROR", 0) }}</b></li>
+</ul>
+
+<h3>Live queue</h3>
+<ul>
+  <li>QUEUED: <b>{{ live_stats.get("QUEUED", 0) }}</b></li>
+  <li>RUNNING: <b>{{ live_stats.get("RUNNING", 0) }}</b></li>
+</ul>
+
+<h3>Comfy nodes</h3>
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Base URL</th>
+      <th>Active</th>
+      <th>Priority</th>
+      <th>Max queue</th>
+      <th>Last seen</th>
+      <th>Exec QUEUED</th>
+      <th>Exec RUNNING</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for n in nodes %}
+      {% set q = per_node.get(n.id, {}) %}
+      <tr>
+        <td><code>{{ n.id }}</code></td>
+        <td>{{ n.name }}</td>
+        <td><code>{{ n.base_url }}</code></td>
+        <td>{% if n.is_active %}<b>YES</b>{% else %}NO{% endif %}</td>
+        <td>{{ n.priority }}</td>
+        <td>{{ n.max_queue }}</td>
+        <td>{{ n.last_seen.strftime("%Y-%m-%d %H:%M:%S") if n.last_seen else "-" }}</td>
+        <td><b>{{ q.get("QUEUED", 0) }}</b></td>
+        <td><b>{{ q.get("RUNNING", 0) }}</b></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

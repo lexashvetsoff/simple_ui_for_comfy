@@ -67,11 +67,11 @@ def prepare_workflow_catalog_item(
             score += 1
 
     if workflow.requires_mask:
-        score += 2
+        score += 3
     
     # print(score)
 
-    if score <= 4:
+    if score <= 3:
         complexity = COMPLEXITY_SIMPLE
     elif score <= 8:
         complexity = COMPLEXITY_MEDIUM

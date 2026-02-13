@@ -573,41 +573,6 @@
             "bgcolor": "#3f5159"
         },
         {
-            "id": 50,
-            "type": "PreviewImage",
-            "pos": [
-                22.317169189453125,
-                2601.564453125
-            ],
-            "size": [
-                210,
-                273.5792541503906
-            ],
-            "flags": {},
-            "order": 51,
-            "mode": 0,
-            "inputs": [
-                {
-                    "localized_name": "images",
-                    "name": "images",
-                    "type": "IMAGE",
-                    "link": 64
-                }
-            ],
-            "outputs": [],
-            "properties": {
-                "cnr_id": "comfy-core",
-                "ver": "0.3.64",
-                "Node name for S&R": "PreviewImage",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "input_ue_unconnectable": {},
-                    "version": "7.2.2"
-                }
-            },
-            "widgets_values": []
-        },
-        {
             "id": 7,
             "type": "ImageConcatMulti",
             "pos": [
@@ -1331,7 +1296,6 @@
                     "link": null
                 },
                 {
-                    "dir": 3,
                     "name": "any_05",
                     "type": "IMAGE",
                     "link": null
@@ -2272,7 +2236,6 @@
                     "link": null
                 },
                 {
-                    "dir": 3,
                     "name": "any_05",
                     "type": "MASK",
                     "link": null
@@ -3638,7 +3601,7 @@
                 96.00000000000023
             ],
             "flags": {},
-            "order": 23,
+            "order": 22,
             "mode": 0,
             "inputs": [
                 {
@@ -3677,73 +3640,6 @@
                 }
             },
             "widgets_values": []
-        },
-        {
-            "id": 48,
-            "type": "GrowMask",
-            "pos": [
-                -233.6722971448957,
-                2795.436578140964
-            ],
-            "size": [
-                227.64614868164062,
-                82
-            ],
-            "flags": {},
-            "order": 32,
-            "mode": 0,
-            "inputs": [
-                {
-                    "localized_name": "mask",
-                    "name": "mask",
-                    "type": "MASK",
-                    "link": 282
-                },
-                {
-                    "localized_name": "expand",
-                    "name": "expand",
-                    "type": "INT",
-                    "widget": {
-                        "name": "expand"
-                    },
-                    "link": null
-                },
-                {
-                    "localized_name": "tapered_corners",
-                    "name": "tapered_corners",
-                    "type": "BOOLEAN",
-                    "widget": {
-                        "name": "tapered_corners"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "MASK",
-                    "name": "MASK",
-                    "type": "MASK",
-                    "links": [
-                        97
-                    ]
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfy-core",
-                "ver": "0.3.64",
-                "Node name for S&R": "GrowMask",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "input_ue_unconnectable": {},
-                    "version": "7.2.2"
-                }
-            },
-            "widgets_values": [
-                60,
-                false
-            ],
-            "color": "#322",
-            "bgcolor": "#533"
         },
         {
             "id": 198,
@@ -3839,7 +3735,6 @@
                     "link": null
                 },
                 {
-                    "dir": 3,
                     "name": "any_05",
                     "type": "IMAGE",
                     "link": null
@@ -5587,7 +5482,7 @@
                 135.45576245412133
             ],
             "flags": {},
-            "order": 22,
+            "order": 23,
             "mode": 0,
             "inputs": [
                 {
@@ -6020,18 +5915,134 @@
             "widgets_values": []
         },
         {
+            "id": 25,
+            "type": "Fast Groups Bypasser (rgthree)",
+            "pos": [
+                221.86947631835938,
+                2132.2919921875
+            ],
+            "size": [
+                376.524169921875,
+                82
+            ],
+            "flags": {},
+            "order": 16,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "OPT_CONNECTION",
+                    "type": "*",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "matchColors": "",
+                "matchTitle": "-Image",
+                "showNav": true,
+                "showAllGraphs": true,
+                "sort": "position",
+                "customSortAlphabet": "",
+                "toggleRestriction": "default",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.1",
+                    "input_ue_unconnectable": {}
+                }
+            },
+            "color": "#3f84de",
+            "bgcolor": "#2b70ca"
+        },
+        {
+            "id": 40,
+            "type": "LoadImage",
+            "pos": [
+                -564.8928845015662,
+                1410.3630106046924
+            ],
+            "size": [
+                460.1587829589844,
+                541.99365234375
+            ],
+            "flags": {},
+            "order": 17,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "image",
+                    "name": "image",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "image"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "choose file to upload",
+                    "name": "upload",
+                    "type": "IMAGEUPLOAD",
+                    "widget": {
+                        "name": "upload"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "IMAGE",
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        270,
+                        283
+                    ]
+                },
+                {
+                    "localized_name": "MASK",
+                    "name": "MASK",
+                    "type": "MASK",
+                    "links": [
+                        269
+                    ]
+                }
+            ],
+            "properties": {
+                "cnr_id": "comfy-core",
+                "ver": "0.3.59",
+                "Node name for S&R": "LoadImage",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "version": "7.1",
+                    "input_ue_unconnectable": {}
+                },
+                "enableTabs": false,
+                "tabWidth": 65,
+                "tabXOffset": 10,
+                "hasSecondTab": false,
+                "secondTabText": "Send Back",
+                "secondTabOffset": 80,
+                "secondTabWidth": 65
+            },
+            "widgets_values": [
+                "Сцена_3.png",
+                "image"
+            ],
+            "color": "#3f82d9",
+            "bgcolor": "#2b6ec5"
+        },
+        {
             "id": 176,
             "type": "ArgosTranslateTextNode",
             "pos": [
-                716.6720925416864,
-                484.4380512974187
+                709.1589445326706,
+                477.6762180893046
             ],
             "size": [
                 395.869140625,
                 167.1613311767578
             ],
             "flags": {},
-            "order": 17,
+            "order": 18,
             "mode": 0,
             "inputs": [
                 {
@@ -6099,120 +6110,106 @@
             "bgcolor": "#2b60b6"
         },
         {
-            "id": 25,
-            "type": "Fast Groups Bypasser (rgthree)",
+            "id": 48,
+            "type": "GrowMask",
             "pos": [
-                221.86947631835938,
-                2132.2919921875
+                -233.6722971448957,
+                2795.436578140964
             ],
             "size": [
-                376.524169921875,
+                227.64614868164062,
                 82
             ],
             "flags": {},
-            "order": 16,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [
-                {
-                    "name": "OPT_CONNECTION",
-                    "type": "*",
-                    "links": null
-                }
-            ],
-            "properties": {
-                "matchColors": "",
-                "matchTitle": "-Image",
-                "showNav": true,
-                "showAllGraphs": true,
-                "sort": "position",
-                "customSortAlphabet": "",
-                "toggleRestriction": "default",
-                "ue_properties": {
-                    "widget_ue_connectable": {},
-                    "version": "7.1",
-                    "input_ue_unconnectable": {}
-                }
-            },
-            "color": "#3f84de",
-            "bgcolor": "#2b70ca"
-        },
-        {
-            "id": 40,
-            "type": "LoadImage",
-            "pos": [
-                -564.8928845015662,
-                1410.3630106046924
-            ],
-            "size": [
-                460.1587829589844,
-                541.99365234375
-            ],
-            "flags": {},
-            "order": 18,
+            "order": 32,
             "mode": 0,
             "inputs": [
                 {
-                    "localized_name": "image",
-                    "name": "image",
-                    "type": "COMBO",
+                    "localized_name": "mask",
+                    "name": "mask",
+                    "type": "MASK",
+                    "link": 282
+                },
+                {
+                    "localized_name": "expand",
+                    "name": "expand",
+                    "type": "INT",
                     "widget": {
-                        "name": "image"
+                        "name": "expand"
                     },
                     "link": null
                 },
                 {
-                    "localized_name": "choose file to upload",
-                    "name": "upload",
-                    "type": "IMAGEUPLOAD",
+                    "localized_name": "tapered_corners",
+                    "name": "tapered_corners",
+                    "type": "BOOLEAN",
                     "widget": {
-                        "name": "upload"
+                        "name": "tapered_corners"
                     },
                     "link": null
                 }
             ],
             "outputs": [
-                {
-                    "localized_name": "IMAGE",
-                    "name": "IMAGE",
-                    "type": "IMAGE",
-                    "links": [
-                        270,
-                        283
-                    ]
-                },
                 {
                     "localized_name": "MASK",
                     "name": "MASK",
                     "type": "MASK",
                     "links": [
-                        269
+                        97
                     ]
                 }
             ],
             "properties": {
                 "cnr_id": "comfy-core",
-                "ver": "0.3.59",
-                "Node name for S&R": "LoadImage",
+                "ver": "0.3.64",
+                "Node name for S&R": "GrowMask",
                 "ue_properties": {
                     "widget_ue_connectable": {},
-                    "version": "7.1",
-                    "input_ue_unconnectable": {}
-                },
-                "enableTabs": false,
-                "tabWidth": 65,
-                "tabXOffset": 10,
-                "hasSecondTab": false,
-                "secondTabText": "Send Back",
-                "secondTabOffset": 80,
-                "secondTabWidth": 65
+                    "input_ue_unconnectable": {},
+                    "version": "7.2.2"
+                }
             },
             "widgets_values": [
-                "Сцена_3.png",
-                "image"
+                60,
+                false
             ],
-            "color": "#3f82d9",
-            "bgcolor": "#2b6ec5"
+            "color": "#322",
+            "bgcolor": "#533"
+        },
+        {
+            "id": 50,
+            "type": "PreviewImage",
+            "pos": [
+                15.358123269253102,
+                2593.5288295851
+            ],
+            "size": [
+                210,
+                273.5792541503906
+            ],
+            "flags": {},
+            "order": 51,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "images",
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 64
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "cnr_id": "comfy-core",
+                "ver": "0.3.64",
+                "Node name for S&R": "PreviewImage",
+                "ue_properties": {
+                    "widget_ue_connectable": {},
+                    "input_ue_unconnectable": {},
+                    "version": "7.2.2"
+                }
+            },
+            "widgets_values": []
         }
     ],
     "links": [
@@ -7507,10 +7504,10 @@
     "config": {},
     "extra": {
         "ds": {
-            "scale": 0.9090909090909103,
+            "scale": 0.38554328942953175,
             "offset": [
-                821.1115022982192,
-                -1357.7048694095129
+                1615.7602974772333,
+                -517.9393028852581
             ]
         },
         "ue_links": [],

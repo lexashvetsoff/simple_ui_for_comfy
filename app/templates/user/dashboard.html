@@ -1,9 +1,10 @@
 {% extends "user/base.html" %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<!-- <h1>Dashboard</h1> -->
+ <h1>Главная панель</h1>
 
-<h2>Workflows</h2>
+<!-- <h2>Workflows</h2>
 
 {% for category, workflows in workflows_by_category.items() %}
   <h3>{{ category }}</h3>
@@ -17,11 +18,12 @@
   </ul>
 {% endfor %}
 
-<hr>
+<hr> -->
 
-<h2>Recent jobs</h2>
+<!-- <h2>Recent jobs</h2> -->
+ <h2>Задания</h2>
 
-<table>
+<!-- <table>
   <tr>
     <th>Workflow</th>
     <th>Status</th>
@@ -37,5 +39,37 @@
       </td>
     </tr>
   {% endfor %}
+</table> -->
+
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
+  <thead>
+    <tr>
+      <th>Workflow</th>
+      <th>Slug</th>
+      <th>Создано</th>
+      <th>Статус</th>
+      <th>Ошибка</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+
+    {% for job, user, workflow in jobs %}
+      <tr>
+        <td>{{ workflow.name }}</td>
+        <td><code>{{ workflow.slug }}</code></td>
+        <td>{{ job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else "-" }}</td>
+        <td><b>{{ job.status }}</b></td>
+        <td style="max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {% if job.error_message %}{{ job.error_message }}{% else %}-{% endif %}
+        </td>
+        <td><a href="/user/jobs/{{ job.id }}">Детали</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8">Нет запущенных или выполненных заданий</td></tr>
+    {% endfor %}
+
+  </tbody>
 </table>
+
 {% endblock %}

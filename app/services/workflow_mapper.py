@@ -410,8 +410,11 @@ def map_inputs_to_workflow(
     # ------------------------------------------------------------
     if spec.inputs.mask:
         mask = spec.inputs.mask
-        if mask.key in uploaded_files and mask.binding:
-            apply_binding(workflow, mask.binding, uploaded_files[mask.key])
+        # if mask.key in uploaded_files and mask.binding:
+        #     apply_binding(workflow, mask.binding, uploaded_files[mask.key])
+        path = uploaded_files.get(mask.key) or uploaded_files.get("mask")
+        if path and mask.binding:
+            apply_binding(workflow, mask.binding, path)
 
     # ------------------------------------------------------------
     # 4) TEXT (last) — final authority

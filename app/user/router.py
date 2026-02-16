@@ -33,13 +33,22 @@ async def user_dashboard(
         workflows_by_category.setdefault(key, []).append(wf)
 
     # Recent jobs
-    result = await db.execute(
-        select(Job)
-        .where(Job.user_id == user.id)
-        .order_by(desc(Job.created_at))
-        .limit(10)
+    # result = await db.execute(
+    #     select(Job)
+    #     .where(Job.user_id == user.id)
+    #     .order_by(desc(Job.created_at))
+    #     .limit(10)
+    # )
+    # jobs = result.scalars().all()
+
+    stmt = (
+        select(Job, User, Workflow)
+        .join(User, User.id == Job.user_id)
+        .join(Workflow, Workflow.id == Job.workflow_id)
+        .where(User.id == user.id)
+        .order_by(Job.created_at.desc())
     )
-    jobs = result.scalars().all()
+    jobs = (await db.execute(stmt)).all()
 
     return templates.TemplateResponse(
         '/user/dashboard.html',
@@ -49,7 +58,7 @@ async def user_dashboard(
             'workflows_by_category': workflows_by_category,
             'jobs': jobs,
         },
-    )
+    ) 
 
 
 @router.get('/workflows', response_class=HTMLResponse)

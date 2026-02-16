@@ -76,6 +76,9 @@
                     <div style="margin-top: 10px;">
                         <label><b>{{ img.label }}</b></label><br>
                         <input type="file" name="image__{{ img.key }}" accept="image/*" required>
+                        <div class="preview" data-preview-for="image__{{ img.key }}" style="margin-top:6px;display:none;">
+                            <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
+                        </div>
                     </div>
                 {% endif %}
             {% endfor %}
@@ -149,6 +152,9 @@
                                 <div style="margin-top: 10px;">
                                     <label><b>{{ img.label }}</b></label><br>
                                     <input type="file" name="image__{{ img.key }}" accept="image/*" required>
+                                    <div class="preview" data-preview-for="image__{{ img.key }}" style="margin-top:6px;display:none;">
+                                        <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
+                                    </div>
                                 </div>
                             {% endif %}
                         {% endfor %}
@@ -160,13 +166,86 @@
 
     {# MASK отдельно #}
     {% if spec.inputs.mask %}
-        <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+        <!-- <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
             <h3 style="margin: 0 0 10px 0;">Mask</h3>
             <input type="file" name="mask" accept="image/*">
+        </div> -->
+
+        <div id="mask-group"
+             data-depends-on="{{ spec.inputs.mask.depends_on }}"
+             data-required="{{ '1' if spec.inputs.mask.required else '0' }}"
+             style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+            <h3 style="margin: 0 0 10px 0;">
+                {{ spec.inputs.mask.label or 'Mask' }}
+                {% if spec.inputs.mask.required %}<span style="color:#c00;">*</span>{% endif %}
+            </h3>
+            <div style="margin-bottom: 8px; color:#666; font-size: 13px;">
+                depends_on: <b>{{ spec.inputs.mask.depends_on }}</b>
+            </div>
+            <input type="file" name="mask" accept="image/*">
+            <div class="preview" data-preview-for="mask" style="margin-top:6px;display:none;">
+                <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
+            </div>
         </div>
     {% endif %}
 
     <button type="submit">Run workflow</button>
 </form>
+
+<script>
+    // --- previews ---
+    function setPreview(inputEl) {
+        const name = inputEl.getAttribute('name');
+        const box = document.querySelector(`.preview[data-preview-for="${CSS.escape(name)}"]`);
+        if (!box) return;
+        const img = box.querySelector('img');
+        const f = inputEl.files && inputEl.files[0];
+        if (!f) {
+            box.style.display = 'none';
+            img.removeAttribute('src');
+            return;
+        }
+        const url = URL.createObjectURL(f);
+        img.src = url;
+        box.style.display = 'block';
+    }
+
+    document.querySelectorAll('input[type=file]').forEach((inp) => {
+        inp.addEventListener('change', () => setPreview(inp));
+    });
+
+    // --- mask depends_on logic ---
+    const maskGroup = document.getElementById('mask-group');
+    if (maskGroup) {
+        const dependsOn = maskGroup.getAttribute('data-depends-on');
+        const baseInputName = `image__${dependsOn}`;
+        const baseInput = document.querySelector(`input[type=file][name="${CSS.escape(baseInputName)}"]`);
+
+        function syncMaskVisibility() {
+            // если base image не найден — не скрываем (лучше показать, чем потерять)
+            if (!baseInput) {
+                maskGroup.style.display = '';
+                return;
+            }
+
+            const baseSelected = baseInput.files && baseInput.files.length > 0;
+            maskGroup.style.display = baseSelected ? '' : 'none';
+
+            // если поле скрыли — очищаем выбранную маску
+            if (!baseSelected) {
+                const maskInput = maskGroup.querySelector('input[type=file][name="mask"]');
+                if (maskInput) {
+                    maskInput.value = '';
+                    setPreview(maskInput);
+                }
+            }
+        }
+
+        if (baseInput) {
+            baseInput.addEventListener('change', syncMaskVisibility);
+        }
+        syncMaskVisibility();
+    }
+</script>
 
 {% endblock %}

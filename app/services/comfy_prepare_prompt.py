@@ -1,99 +1,90 @@
 from __future__ import annotations
+
 import os
+from pathlib import Path
 from typing import Dict, Any
+
 from app.core.config import settings
 from app.services.comfy_client import upload_image_to_comfy
 
-
-LOAD_IMAGE_TYPES = {"LoadImage", "LoadImageFromPath"}
+# Константы для типов узлов, как во втором файле
+IMAGE_NODE_TYPES = {"LoadImage", "LoadImageFromPath"}
+MASK_NODE_TYPES = {"LoadMask"}
 
 
 async def upload_and_patch_images(
-        *,
-        base_url: str,
-        prompt_payload: Dict[str, Any],
-        stored_files: Dict[str, str]
+    *,
+    base_url: str,
+    prompt_payload: Dict[str, Any],
+    stored_files: Dict[str, str],
 ) -> Dict[str, Any]:
     """
-    stored_files: dict[key -> rel_path] где rel_path относительно STORAGE_ROOT
-    prompt_payload: {"prompt": {...}}
-    Патчит все LoadImage / LoadImageFromPath:
-      - если inputs.image указывает на rel_path или имя файла, которого нет на comfy
-      - пытаемся найти подходящий файл в stored_files и залить его на comfy
+    - Загружает все изображения и маски из stored_files на ComfyUI.
+    - Патчит узлы LoadImage / LoadImageFromPath / LoadMask в соответствии с ключами.
     """
-    prompt = prompt_payload.get("prompt", {})
+    prompt = prompt_payload.get("prompt")
     if not isinstance(prompt, dict) or not stored_files:
         return prompt_payload
 
-    # Предподготовка: превращаем stored_files в abs paths
-    abs_files: Dict[str, str] = {}
-    for k, rel in stored_files.items():
-        abs_files[k] = os.path.join(settings.STORAGE_ROOT, rel)
+    storage_root = Path(settings.STORAGE_ROOT)
+    uploaded: Dict[str, str] = {}  # key -> remote_name
 
-    for node_id, node in prompt.items():
-        if not isinstance(node, dict):
+    # 1. Загружаем все подходящие файлы (image_*, mask_*, mask)
+    for key, rel_path in stored_files.items():
+        if not isinstance(key, str) or not isinstance(rel_path, str):
             continue
-        ct = node.get("class_type")
-        if ct not in LOAD_IMAGE_TYPES:
+        if not (key.startswith("image_") or key.startswith("mask_") or key == "mask"):
             continue
 
-        inputs = node.get("inputs") or {}
-        if not isinstance(inputs, dict):
-            continue
+        # Определяем абсолютный путь
+        abs_path = storage_root / rel_path
+        if not abs_path.exists():
+            # Возможно rel_path уже абсолютный
+            abs_path = Path(rel_path)
+            if not abs_path.exists():
+                continue
 
-        # Обычно field называется "image"
-        img_val = inputs.get("image")
-        # Если это уже имя на comfy (например "some.png"), мы не знаем — но Comfy сам проверит.
-        # Тут логика: если img_val совпадает с rel_path из stored_files или похоже на путь — грузим.
-        target_abs = None
-        target_filename = None
+        # Формируем имя файла для Comfy: ключ + расширение
+        ext = os.path.splitext(str(abs_path))[1] or ".png"
+        name = f"{key}{ext}"
 
-        # 1) если прямо передали rel_path (как у тебя сейчас должно быть)
-        if isinstance(img_val, str):
-            # если img_val совпал с одним из rel_path
-            for k, rel in stored_files.items():
-                if img_val == rel:
-                    target_abs = abs_files[k]
-                    target_filename = os.path.basename(target_abs)
-                    break
-
-            # 2) если img_val просто "filename.png", попробуем найти по имени среди stored_files
-            if target_abs is None and ("/" not in img_val and "\\" not in img_val):
-                for k, ap in abs_files.items():
-                    if os.path.basename(ap) == img_val:
-                        target_abs = ap
-                        target_filename = os.path.basename(ap)
-                        break
-
-        # 3) если поле пустое — попробуем взять первый image_... из stored_files
-        if target_abs is None:
-            # часто ключи вида "image_204" или "image_XXX"
-            for k, ap in abs_files.items():
-                if k.startswith("image_"):
-                    target_abs = ap
-                    target_filename = os.path.basename(ap)
-                    break
-
-        if not target_abs or not target_filename:
-            continue
-
-        if not os.path.exists(target_abs):
-            continue
-
-        with open(target_abs, "rb") as f:
+        with open(abs_path, "rb") as f:
             content = f.read()
 
         remote_name = await upload_image_to_comfy(
             base_url,
-            filename=target_filename,
+            filename=name,
             content=content,
             subfolder="",
-            overwrite=True
+            overwrite=True,
         )
+        uploaded[key] = remote_name
 
-        inputs["image"] = remote_name
-        node["inputs"] = inputs
-        prompt[node_id] = node
+    # 2. Патчим узлы в соответствии с загруженными файлами
+    for node_id, node in prompt.items():
+        if not isinstance(node, dict):
+            continue
+        class_type = node.get("class_type")
+        inputs = node.get("inputs")
+        if not isinstance(inputs, dict):
+            continue
+
+        # Обработка узлов загрузки изображений
+        if class_type in IMAGE_NODE_TYPES:
+            key = f"image_{node_id}"
+            if key in uploaded:
+                inputs["image"] = uploaded[key]
+                node["inputs"] = inputs
+
+        # Обработка узлов загрузки масок
+        if class_type in MASK_NODE_TYPES:
+            key1 = f"mask_{node_id}"
+            if key1 in uploaded:
+                inputs["image"] = uploaded[key1]
+                node["inputs"] = inputs
+            elif "mask" in uploaded:
+                inputs["image"] = uploaded["mask"]
+                node["inputs"] = inputs
 
     prompt_payload["prompt"] = prompt
     return prompt_payload

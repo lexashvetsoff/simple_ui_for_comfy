@@ -123,11 +123,14 @@ async def run_workflow(
             mask_file = value
     
     # 4. Save uploaded files
+    mask_key = spec.inputs.mask.key if spec.inputs.mask else 'mask'
+
     stored_files = await save_uploaded_files(
         user_id=user.id,
         workflow_slug=slug,
         images=image_files,
-        mask=mask_file
+        mask=mask_file,
+        mask_key=mask_key
     )
 
     # 5. Map inputs → comfy workflow

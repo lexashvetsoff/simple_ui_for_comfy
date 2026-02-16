@@ -119,5 +119,5 @@ async def upload_image_to_comfy(
             raise HTTPException(status_code=502, detail=f'ComfyUI upload response missing name: {response_json}')
         
         if response_json.get('subfolder'):
-            return f"{response_json['subfolder']/{name}}"
+            return f"{response_json['subfolder']}/{name}"
         return name

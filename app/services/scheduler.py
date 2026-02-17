@@ -1,7 +1,8 @@
 import json
 import asyncio
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job import Job
@@ -17,16 +18,47 @@ from app.services.comfy_prompt_validate import validate_and_fix_prompt
 from app.services.comfy_prepare_prompt import upload_and_patch_images
 
 
-async def select_avilable_node(
+# async def select_available_node(
+#         *,
+#         db: AsyncSession
+# ) -> ComfyNode | None:
+#     result = await db.execute(
+#         select(ComfyNode)
+#         .where(ComfyNode.is_active == True)
+#         .order_by(ComfyNode.last_seen.desc())
+#     )
+#     return result.scalars().first()
+
+
+async def select_available_node(
         *,
         db: AsyncSession
 ) -> ComfyNode | None:
-    result = await db.execute(
-        select(ComfyNode)
+    active_statuses = ['QUEUED', 'RUNNING']
+    stmt = (
+        select(
+            ComfyNode,
+            func.count(JobExecution.id).label('active_jobs')
+        )
+        .outerjoin(
+            JobExecution,
+            (ComfyNode.id == JobExecution.node_id) &
+            JobExecution.status.in_(active_statuses)
+        )
         .where(ComfyNode.is_active == True)
-        .order_by(ComfyNode.last_seen.desc())
+        .group_by(ComfyNode.id)
+        .order_by(
+            func.count(JobExecution.id).asc(),
+            ComfyNode.last_seen.desc()
+        )
     )
-    return result.scalars().first()
+
+    result = await db.execute(stmt)
+    # result возвращает кортежи (ComfyNode, count), берём только узел
+    first_row = result.first()
+    if first_row:
+        return first_row[0]
+    return None
 
 
 async def enqueue_job(
@@ -65,7 +97,7 @@ async def scheduler_tick(
         return
     
     # 2. Выбираем ноду
-    node = await select_avilable_node(db=db)
+    node = await select_available_node(db=db)
     if not node:
         return
     

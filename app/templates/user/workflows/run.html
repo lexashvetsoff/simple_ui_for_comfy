@@ -7,6 +7,8 @@
 
 <form method="post" action="/user/workflows/{{ workflow.slug }}/run" enctype="multipart/form-data">
 
+    <button type="submit">Run workflow</button>
+
     {# ---------------------------
        1) VISIBLE GROUPS FIRST
        --------------------------- #}
@@ -36,7 +38,16 @@
                 <div style="margin-bottom: 12px;">
                     <label><b>{{ p.label }}</b></label><br>
                     {% if p.type == 'text' %}
-                        <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
+                        {% if g.label == 'Prompt Translate (Multiline Next Prompts)' %}
+                            <textarea
+                                name="param__{{ p.key }}"
+                                rows="4"
+                                style="width: 100%;"
+                                {% if p.required %}required{% endif %}
+                            >{{ p.default | default("") }}</textarea>
+                        {% else %}
+                            <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
+                        {% endif %}
                     {% else %}
                         <input type="number" name="param__{{ p.key }}" value="{{ p.default }}" step="any" style="width: 220px;">
                     {% endif %}
@@ -84,6 +95,78 @@
             {% endfor %}
         </div>
     {% endfor %}
+
+    {# MASK отдельно #}
+    {% if spec.inputs.mask %}
+        <!-- <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+            <h3 style="margin: 0 0 10px 0;">Mask</h3>
+            <input type="file" name="mask" accept="image/*">
+        </div> -->
+
+        <div id="mask-group"
+             data-depends-on="{{ spec.inputs.mask.depends_on }}"
+             data-required="{{ '1' if spec.inputs.mask.required else '0' }}"
+             style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+            <h3 style="margin: 0 0 10px 0;">
+                {{ spec.inputs.mask.label or 'Mask' }}
+                {% if spec.inputs.mask.required %}<span style="color:#c00;">*</span>{% endif %}
+            </h3>
+            <div style="margin-bottom: 8px; color:#666; font-size: 13px;">
+                depends_on: <b>{{ spec.inputs.mask.depends_on }}</b>
+            </div>
+            <input type="file" name="mask" accept="image/*">
+            <div class="preview" data-preview-for="mask" style="margin-top:6px;display:none;">
+                <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
+            </div>
+
+            <div id="mask-editor" style="display:none; margin-top:12px;">
+                <div style="display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="position:relative; display:inline-block; border:1px solid #ddd; border-radius:12px; overflow:hidden;">
+                    <canvas id="mask-base" style="display:block;"></canvas>
+                    <canvas id="mask-paint" style="position:absolute; left:0; top:0; cursor:crosshair;"></canvas>
+                    </div>
+
+                    <div style="min-width:240px; border:1px solid #eee; border-radius:12px; padding:12px;">
+                    <div style="font-weight:600; margin-bottom:8px;">Mask tools</div>
+
+                    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                        <button type="button" id="tool-brush">Brush</button>
+                        <button type="button" id="tool-eraser">Eraser</button>
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <label>Brush size: <span id="brush-size-val">32</span></label><br/>
+                        <input type="range" id="brush-size" min="1" max="200" value="32" style="width:100%;">
+                    </div>
+
+                    <div class="mask-extra" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px; margin-bottom:10px;">
+                        <label style="display:flex; gap:8px; align-items:center;">
+                            <span style="white-space:nowrap;">Overlay</span>
+                            <input id="maskOverlayOpacity" type="range" min="0.1" max="0.8" step="0.05" value="0.35">
+                            <span id="maskOverlayOpacityVal">0.35</span>
+                        </label>
+
+                        <button type="button" id="maskInvertBtn">Invert mask</button>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                        <button type="button" id="mask-undo">Undo</button>
+                        <button type="button" id="mask-clear">Clear</button>
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <button type="button" id="mask-apply" style="width:100%;">Use drawn mask</button>
+                    </div>
+
+                    <div style="color:#666; font-size:12px;">
+                        White = masked area, Black = no mask.
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    {% endif %}
 
     {# --------------------------------------------------------
        2) ONE GLOBAL ACCORDION FOR "HIDDEN-ONLY" GROUPS
@@ -164,32 +247,7 @@
         </details>
     {% endif %}
 
-    {# MASK отдельно #}
-    {% if spec.inputs.mask %}
-        <!-- <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
-            <h3 style="margin: 0 0 10px 0;">Mask</h3>
-            <input type="file" name="mask" accept="image/*">
-        </div> -->
-
-        <div id="mask-group"
-             data-depends-on="{{ spec.inputs.mask.depends_on }}"
-             data-required="{{ '1' if spec.inputs.mask.required else '0' }}"
-             style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
-            <h3 style="margin: 0 0 10px 0;">
-                {{ spec.inputs.mask.label or 'Mask' }}
-                {% if spec.inputs.mask.required %}<span style="color:#c00;">*</span>{% endif %}
-            </h3>
-            <div style="margin-bottom: 8px; color:#666; font-size: 13px;">
-                depends_on: <b>{{ spec.inputs.mask.depends_on }}</b>
-            </div>
-            <input type="file" name="mask" accept="image/*">
-            <div class="preview" data-preview-for="mask" style="margin-top:6px;display:none;">
-                <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
-            </div>
-        </div>
-    {% endif %}
-
-    <button type="submit">Run workflow</button>
+    <!-- <button type="submit">Run workflow</button> -->
 </form>
 
 <script>
@@ -245,6 +303,293 @@
             baseInput.addEventListener('change', syncMaskVisibility);
         }
         syncMaskVisibility();
+
+        (function () {
+            const maskGroup = document.getElementById('mask-group');
+            if (!maskGroup) return;
+
+            const dependsOn = maskGroup.getAttribute('data-depends-on');
+            const baseInputName = `image__${dependsOn}`;
+            const baseInput = document.querySelector(`input[type=file][name="${CSS.escape(baseInputName)}"]`);
+            const maskInput = maskGroup.querySelector(`input[type=file][name="mask"]`);
+
+            const editor = document.getElementById('mask-editor');
+            const canvasBase = document.getElementById('mask-base');
+            const canvasPaint = document.getElementById('mask-paint');
+            if (!editor || !canvasBase || !canvasPaint || !maskInput) return;
+
+            const ctxBase = canvasBase.getContext('2d', { willReadFrequently: true });
+            const ctxPaint = canvasPaint.getContext('2d', { willReadFrequently: true });
+
+            // Реальная маска хранится отдельно (offscreen)
+            const maskBuf = document.createElement('canvas');
+            const ctxMask = maskBuf.getContext('2d', { willReadFrequently: true });
+
+            // Настройка overlay (как подсветка)
+            // const OVERLAY_COLOR = 'rgba(255, 0, 0, 0.35)';
+            function getOverlayColor() {
+                const a = overlayOpacity ? Number(overlayOpacity.value || 0.35) : 0.35;
+                return `rgba(255, 0, 0, ${a})`;
+            }
+
+            const btnBrush = document.getElementById('tool-brush');
+            const btnEraser = document.getElementById('tool-eraser');
+            const rangeSize = document.getElementById('brush-size');
+            const sizeVal = document.getElementById('brush-size-val');
+            const btnUndo = document.getElementById('mask-undo');
+            const btnClear = document.getElementById('mask-clear');
+            const overlayOpacity = document.getElementById('maskOverlayOpacity');
+            const overlayOpacityVal = document.getElementById('maskOverlayOpacityVal');
+            const btnInvert = document.getElementById('maskInvertBtn');
+            const btnApply = document.getElementById('mask-apply');
+
+            let tool = 'brush';
+            let brushSize = parseInt(rangeSize.value || '32', 10);
+            let drawing = false;
+            let lastX = 0, lastY = 0;
+
+            // 1-step undo (MVP). Можно расширить в stack.
+            let undoImageData = null;
+
+            function redrawOverlay() {
+                const w = canvasPaint.width, h = canvasPaint.height;
+                ctxPaint.clearRect(0, 0, w, h);
+
+                // Рисуем цветную заливку
+                ctxPaint.save();
+                // ctxPaint.fillStyle = OVERLAY_COLOR;
+                ctxPaint.fillStyle = getOverlayColor();
+                ctxPaint.fillRect(0, 0, w, h);
+
+                // Оставляем заливку только там, где маска НЕ прозрачная
+                ctxPaint.globalCompositeOperation = 'destination-in';
+                ctxPaint.drawImage(maskBuf, 0, 0);
+                ctxPaint.restore();
+            }
+
+            if (overlayOpacity && overlayOpacityVal) {
+                overlayOpacityVal.textContent = String(overlayOpacity.value);
+
+                overlayOpacity.addEventListener('input', () => {
+                    overlayOpacityVal.textContent = String(overlayOpacity.value);
+                    redrawOverlay();
+                });
+            }
+
+            function invertMask() {
+                const w = maskBuf.width, h = maskBuf.height;
+                if (!w || !h) return;
+
+                snapshotUndo();
+
+                const img = ctxMask.getImageData(0, 0, w, h);
+                const d = img.data;
+
+                // Мы рисуем белым в маску (rgb=255, alpha=255), фон прозрачный (alpha=0)
+                // Инверт: alpha = 255 - alpha, rgb оставим белым.
+                for (let i = 0; i < d.length; i += 4) {
+                    d[i] = 255;     // R
+                    d[i + 1] = 255; // G
+                    d[i + 2] = 255; // B
+                    d[i + 3] = 255 - d[i + 3]; // A
+                }
+
+                ctxMask.putImageData(img, 0, 0);
+                redrawOverlay();
+            }
+
+            if (btnInvert) {
+                btnInvert.addEventListener('click', () => {
+                    invertMask();
+                });
+            }
+
+            function setTool(t) {
+                tool = t;
+                btnBrush.disabled = (t === 'brush');
+                btnEraser.disabled = (t === 'eraser');
+            }
+
+            function setBrushSize(v) {
+                brushSize = v;
+                sizeVal.textContent = String(v);
+            }
+
+            setTool('brush');
+            setBrushSize(brushSize);
+
+            rangeSize.addEventListener('input', () => setBrushSize(parseInt(rangeSize.value, 10)));
+
+            btnBrush.addEventListener('click', () => setTool('brush'));
+            btnEraser.addEventListener('click', () => setTool('eraser'));
+
+            function snapshotUndo() {
+                try {
+                    undoImageData = ctxMask.getImageData(0, 0, maskBuf.width, maskBuf.height);
+                } catch (e) {
+                    undoImageData = null;
+                }
+            }
+
+            btnUndo.addEventListener('click', () => {
+                if (!undoImageData) return;
+                ctxMask.putImageData(undoImageData, 0, 0);
+                redrawOverlay();
+            });
+
+            btnClear.addEventListener('click', () => {
+                snapshotUndo();
+                ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height); // прозрачная маска
+                redrawOverlay();
+            });
+
+            function getPos(evt) {
+                const rect = canvasPaint.getBoundingClientRect();
+                const x = (evt.clientX - rect.left) * (canvasPaint.width / rect.width);
+                const y = (evt.clientY - rect.top) * (canvasPaint.height / rect.height);
+                return { x, y };
+            }
+
+            function strokeLine(x0, y0, x1, y1) {
+                ctxMask.save();
+                ctxMask.lineCap = 'round';
+                ctxMask.lineJoin = 'round';
+                ctxMask.lineWidth = brushSize;
+
+                if (tool === 'brush') {
+                    ctxMask.globalCompositeOperation = 'source-over';
+                    ctxMask.strokeStyle = '#fff'; // белая маска
+                } else {
+                    // eraser: стираем до прозрачности
+                    ctxMask.globalCompositeOperation = 'destination-out';
+                    ctxMask.strokeStyle = 'rgba(0,0,0,1)';
+                }
+
+                ctxMask.beginPath();
+                ctxMask.moveTo(x0, y0);
+                ctxMask.lineTo(x1, y1);
+                ctxMask.stroke();
+                ctxMask.restore();
+
+                redrawOverlay();
+            }
+
+            function onPointerDown(evt) {
+                if (!editor || editor.style.display === 'none') return;
+                drawing = true;
+                snapshotUndo();
+                const p = getPos(evt);
+                lastX = p.x; lastY = p.y;
+                strokeLine(lastX, lastY, lastX, lastY);
+                canvasPaint.setPointerCapture(evt.pointerId);
+            }
+
+            function onPointerMove(evt) {
+                if (!drawing) return;
+                const p = getPos(evt);
+                strokeLine(lastX, lastY, p.x, p.y);
+                lastX = p.x; lastY = p.y;
+            }
+
+            function onPointerUp(evt) {
+                drawing = false;
+                try { canvasPaint.releasePointerCapture(evt.pointerId); } catch (e) {}
+            }
+
+            canvasPaint.addEventListener('pointerdown', onPointerDown);
+            canvasPaint.addEventListener('pointermove', onPointerMove);
+            canvasPaint.addEventListener('pointerup', onPointerUp);
+            canvasPaint.addEventListener('pointercancel', onPointerUp);
+            canvasPaint.addEventListener('pointerleave', onPointerUp);
+
+            async function loadBaseImageFromFile(file) {
+                return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+                });
+            }
+
+            async function setupEditorFromBaseImage() {
+                if (!baseInput || !baseInput.files || !baseInput.files[0]) {
+                editor.style.display = 'none';
+                return;
+                }
+
+                const img = await loadBaseImageFromFile(baseInput.files[0]);
+
+                // 1) Реальный размер канваса = размер исходника
+                canvasBase.width = img.naturalWidth;
+                canvasBase.height = img.naturalHeight;
+                canvasPaint.width = img.naturalWidth;
+                canvasPaint.height = img.naturalHeight;
+
+                // 2) Визуальный размер: ограничим, чтобы не раздувало страницу
+                const maxW = 768;
+                const scale = Math.min(1, maxW / img.naturalWidth);
+                canvasBase.style.width = Math.round(img.naturalWidth * scale) + 'px';
+                canvasBase.style.height = Math.round(img.naturalHeight * scale) + 'px';
+                canvasPaint.style.width = canvasBase.style.width;
+                canvasPaint.style.height = canvasBase.style.height;
+
+                // 3) Рисуем базу + инициализируем маску чёрным
+                ctxBase.clearRect(0, 0, canvasBase.width, canvasBase.height);
+                ctxBase.drawImage(img, 0, 0);
+
+                // подгоняем maskBuf под размер
+                maskBuf.width = img.naturalWidth;
+                maskBuf.height = img.naturalHeight;
+
+                // пустая маска (прозрачная)
+                ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height);
+
+                // и рисуем overlay (пока пустой)
+                redrawOverlay();
+
+                editor.style.display = '';
+            }
+
+            // Важное: показываем редактор только если base image выбран (depends_on логика)
+            async function syncEditor() {
+                if (!baseInput || !baseInput.files || baseInput.files.length === 0) {
+                editor.style.display = 'none';
+                return;
+                }
+                await setupEditorFromBaseImage();
+            }
+
+            if (baseInput) baseInput.addEventListener('change', () => { syncEditor(); });
+
+            // Кнопка "Use drawn mask" -> file input "mask"
+            btnApply.addEventListener('click', async () => {
+                const w = maskBuf.width, h = maskBuf.height;
+
+                // temp canvas для экспорта (чёрный фон + белая маска)
+                const out = document.createElement('canvas');
+                out.width = w; out.height = h;
+                const outCtx = out.getContext('2d');
+
+                outCtx.fillStyle = '#000';
+                outCtx.fillRect(0, 0, w, h);
+                outCtx.drawImage(maskBuf, 0, 0);
+
+                const blob = await new Promise((resolve) => out.toBlob(resolve, 'image/png'));
+                if (!blob) return;
+
+                const file = new File([blob], 'mask.png', { type: 'image/png' });
+
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                maskInput.files = dt.files;
+
+                if (typeof setPreview === 'function') setPreview(maskInput);
+            });
+
+            // первичная синхронизация
+            // (mask-group сам скроется/покажется, а мы — редактор)
+            syncEditor();
+        })();
     }
 </script>
 

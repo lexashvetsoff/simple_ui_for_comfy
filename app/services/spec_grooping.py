@@ -222,9 +222,16 @@ def prepare_spec_groups(
                 node_id = str(b["node_id"])
                 break
 
-        text_items = [i for i in items if i.get("_kind") == "text"]
+        text_items_all = [i for i in items if i.get("_kind") == "text"]
         param_items = [i for i in items if i.get("_kind") == "param"]
         image_items = [i for i in items if i.get("_kind") == "image"]
+
+        text_items: List[dict] = []
+
+        for t in text_items_all:
+            v = t.get("view")
+            if v == "view":
+                text_items.append(t)
 
         params_view: List[dict] = []
         params_hidden: List[dict] = []

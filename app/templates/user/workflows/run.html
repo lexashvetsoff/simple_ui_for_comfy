@@ -2,6 +2,8 @@
 
 {% block content %}
 
+{% set ns = namespace(mask_placed=false) %}
+
 <h1>{{ workflow.name }}</h1>
 <p>{{ spec.meta.description }}</p>
 
@@ -23,8 +25,8 @@
                         <label><b>{{ inp.label }}</b></label><br>
                         <textarea
                             name="text__{{ inp.key }}"
-                            rows="4"
-                            style="width: 100%;"
+                            rows="10"
+                            style="width: 80%;"
                             {% if inp.required %}required{% endif %}
                         >{{ inp.default | default("") }}</textarea>
                     </div>
@@ -41,10 +43,19 @@
                         {% if g.label == 'Prompt Translate (Multiline Next Prompts)' %}
                             <textarea
                                 name="param__{{ p.key }}"
-                                rows="4"
-                                style="width: 100%;"
+                                rows="10"
+                                style="width: 80%;"
                                 {% if p.required %}required{% endif %}
                             >{{ p.default | default("") }}</textarea>
+                        
+                        {% elif p.label == 'DeepTranslatorCLIPTextEncodeNode param 7' %}
+                            <textarea
+                                name="param__{{ p.key }}"
+                                rows="10"
+                                style="width: 80%;"
+                                {% if p.required %}required{% endif %}
+                            >{{ p.default | default("") }}</textarea>
+
                         {% else %}
                             <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">
                         {% endif %}
@@ -58,7 +69,7 @@
             {% if g.params_hidden and g.params_hidden|length > 0 %}
                 <details style="margin-top: 12px; padding: 10px; border: 1px dashed #ddd; border-radius: 10px;">
                     <summary style="cursor: pointer; font-weight: 600;">
-                        Advanced settings ({{ g.params_hidden|length }})
+                        Расширенные настройки ({{ g.params_hidden|length }})
                     </summary>
 
                     <div style="margin-top: 12px;">
@@ -91,18 +102,135 @@
                             <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
                         </div>
                     </div>
+
+
+                    {# MASK отдельно #}
+                    {% if not ns.mask_placed and spec.inputs.mask and img.key == spec.inputs.mask.depends_on %}
+                        <div id="mask-group"
+                            data-depends-on="{{ spec.inputs.mask.depends_on }}"
+                            data-required="{{ '1' if spec.inputs.mask.required else '0' }}"
+                            style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
+                            <h3 style="margin: 0 0 10px 0;">
+                                {{ spec.inputs.mask.label or 'Mask' }}
+                                {% if spec.inputs.mask.required %}<span style="color:#c00;">*</span>{% endif %}
+                            </h3>
+
+                            <div style="margin-bottom: 8px; color:#666; font-size: 13px;">
+                                depends_on: <b>{{ spec.inputs.mask.depends_on }}</b>
+                            </div>
+
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                <input type="file" name="mask" accept="image/*">
+                                <button type="button" id="mask-open" style="padding:6px 10px;">Edit mask</button>
+                            </div>
+
+                            <div class="preview" data-preview-for="mask" style="margin-top:6px;display:none;">
+                                <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
+                            </div>
+
+                            {# MODAL (popup) #}
+                            <div id="mask-modal" style="display:none; position:fixed; inset:0; z-index:9999;">
+                                <div id="mask-modal-backdrop" style="position:absolute; inset:0; background:rgba(0,0,0,.55);"></div>
+
+                                <div style="
+                                    position:relative;
+                                    margin: 4vh auto;
+                                    width: min(1200px, 94vw);
+                                    height: min(86vh, 900px);
+                                    background:#fff;
+                                    border-radius:16px;
+                                    overflow:hidden;
+                                    box-shadow: 0 10px 40px rgba(0,0,0,.35);
+                                    display:flex;
+                                    flex-direction:column;
+                                ">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid #eee;">
+                                        <div style="font-weight:700;">Mask editor</div>
+                                        <button type="button" id="mask-close" style="padding:6px 10px;">Close</button>
+                                    </div>
+
+                                    <div style="display:flex; gap:12px; padding:12px 14px; border-bottom:1px solid #f1f1f1; flex-wrap:wrap; align-items:center;">
+                                        <div style="display:flex; gap:10px; align-items:center;">
+                                            <label style="display:flex; gap:8px; align-items:center;">
+                                                <span style="white-space:nowrap;">Zoom</span>
+                                                <input id="maskZoom" type="range" min="0.5" max="4" step="0.1" value="1" style="width:220px;">
+                                                <span id="maskZoomVal">1.0x</span>
+                                            </label>
+                                            <button type="button" id="maskFitBtn">Fit</button>
+                                            <button type="button" id="mask100Btn">100%</button>
+                                        </div>
+
+                                        <div style="margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                            <label style="display:flex; gap:8px; align-items:center;">
+                                                <span style="white-space:nowrap;">Overlay</span>
+                                                <input id="maskOverlayOpacity" type="range" min="0.1" max="0.8" step="0.05" value="0.35">
+                                                <span id="maskOverlayOpacityVal">0.35</span>
+                                            </label>
+
+                                            <button type="button" id="maskInvertBtn">Invert</button>
+                                            <button type="button" id="mask-undo">Undo</button>
+                                            <button type="button" id="mask-clear">Clear</button>
+
+                                            <label style="display:flex; gap:8px; align-items:center;">
+                                                <span style="white-space:nowrap;">Brush</span>
+                                                <input type="range" id="brush-size" min="1" max="200" value="32">
+                                                <span id="brush-size-val">32</span>
+                                            </label>
+
+                                            <button type="button" id="tool-brush">Brush</button>
+                                            <button type="button" id="tool-eraser">Eraser</button>
+
+                                            <button type="button" id="mask-apply" style="font-weight:700;">Use mask</button>
+                                        </div>
+                                    </div>
+
+                                    <div style="flex:1; display:flex; overflow:hidden;">
+                                        <div id="maskScroll" style="flex:1; overflow:auto; background:#111; padding:16px;">
+                                            <div id="maskZoomWrap" style="position:relative; display:inline-block; transform-origin: 0 0;">
+                                                <div style="position:relative; display:inline-block; border:1px solid #333; border-radius:12px; overflow:hidden; background:#000;">
+                                                    <canvas id="mask-base" style="display:block;"></canvas>
+                                                    <canvas id="mask-paint" style="position:absolute; left:0; top:0; cursor:crosshair;"></canvas>
+                                                    <div id="brushCursor" style="
+                                                        position:absolute;
+                                                        left:0; top:0;
+                                                        width:10px; height:10px;
+                                                        border: 2px dotted rgba(255,255,255,0.95);
+                                                        border-radius: 50%;
+                                                        box-shadow: 0 0 0 1px rgba(0,0,0,0.55);
+                                                        pointer-events:none;
+                                                        transform: translate(-9999px,-9999px);
+                                                        display:none;
+                                                    "></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style="width: 280px; border-left:1px solid #eee; padding:14px; background:#fafafa;">
+                                            <div style="font-weight:700; margin-bottom:8px;">Tips</div>
+                                            <div style="color:#444; font-size:13px; line-height:1.4;">
+                                                <div style="margin-bottom:8px;">• Paint = masked area (white)</div>
+                                                <div style="margin-bottom:8px;">• Eraser makes area unmasked</div>
+                                                <div style="margin-bottom:8px;">• Overlay helps see what you selected</div>
+                                                <div>• “Use mask” will export PNG (black bg + white mask) into the file field</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                            {# /MODAL #}
+
+                        </div>
+                    {% endif %}
+
+
                 {% endif %}
             {% endfor %}
         </div>
     {% endfor %}
 
-    {# MASK отдельно #}
+    <!-- {# MASK отдельно #}
     {% if spec.inputs.mask %}
-        <!-- <div style="margin: 16px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; max-width: 980px;">
-            <h3 style="margin: 0 0 10px 0;">Mask</h3>
-            <input type="file" name="mask" accept="image/*">
-        </div> -->
-
         <div id="mask-group"
              data-depends-on="{{ spec.inputs.mask.depends_on }}"
              data-required="{{ '1' if spec.inputs.mask.required else '0' }}"
@@ -111,71 +239,111 @@
                 {{ spec.inputs.mask.label or 'Mask' }}
                 {% if spec.inputs.mask.required %}<span style="color:#c00;">*</span>{% endif %}
             </h3>
+
             <div style="margin-bottom: 8px; color:#666; font-size: 13px;">
                 depends_on: <b>{{ spec.inputs.mask.depends_on }}</b>
             </div>
-            <input type="file" name="mask" accept="image/*">
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="file" name="mask" accept="image/*">
+                <button type="button" id="mask-open" style="padding:6px 10px;">Edit mask</button>
+            </div>
+
             <div class="preview" data-preview-for="mask" style="margin-top:6px;display:none;">
                 <img style="max-width:260px;max-height:260px;border:1px solid #ddd;border-radius:10px;" />
             </div>
 
-            <div id="mask-editor" style="display:none; margin-top:12px;">
-                <div style="display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-                    <div style="position:relative; display:inline-block; border:1px solid #ddd; border-radius:12px; overflow:hidden;">
-                    <canvas id="mask-base" style="display:block;"></canvas>
-                    <canvas id="mask-paint" style="position:absolute; left:0; top:0; cursor:crosshair;"></canvas>
+            {# MODAL (popup) #}
+            <div id="mask-modal" style="display:none; position:fixed; inset:0; z-index:9999;">
+                <div id="mask-modal-backdrop" style="position:absolute; inset:0; background:rgba(0,0,0,.55);"></div>
+
+                <div style="
+                    position:relative;
+                    margin: 4vh auto;
+                    width: min(1200px, 94vw);
+                    height: min(86vh, 900px);
+                    background:#fff;
+                    border-radius:16px;
+                    overflow:hidden;
+                    box-shadow: 0 10px 40px rgba(0,0,0,.35);
+                    display:flex;
+                    flex-direction:column;
+                ">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid #eee;">
+                        <div style="font-weight:700;">Mask editor</div>
+                        <button type="button" id="mask-close" style="padding:6px 10px;">Close</button>
                     </div>
 
-                    <div style="min-width:240px; border:1px solid #eee; border-radius:12px; padding:12px;">
-                    <div style="font-weight:600; margin-bottom:8px;">Mask tools</div>
+                    <div style="display:flex; gap:12px; padding:12px 14px; border-bottom:1px solid #f1f1f1; flex-wrap:wrap; align-items:center;">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <label style="display:flex; gap:8px; align-items:center;">
+                                <span style="white-space:nowrap;">Zoom</span>
+                                <input id="maskZoom" type="range" min="0.5" max="4" step="0.1" value="1" style="width:220px;">
+                                <span id="maskZoomVal">1.0x</span>
+                            </label>
+                            <button type="button" id="maskFitBtn">Fit</button>
+                            <button type="button" id="mask100Btn">100%</button>
+                        </div>
 
-                    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
-                        <button type="button" id="tool-brush">Brush</button>
-                        <button type="button" id="tool-eraser">Eraser</button>
+                        <div style="margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <label style="display:flex; gap:8px; align-items:center;">
+                                <span style="white-space:nowrap;">Overlay</span>
+                                <input id="maskOverlayOpacity" type="range" min="0.1" max="0.8" step="0.05" value="0.35">
+                                <span id="maskOverlayOpacityVal">0.35</span>
+                            </label>
+
+                            <button type="button" id="maskInvertBtn">Invert</button>
+                            <button type="button" id="mask-undo">Undo</button>
+                            <button type="button" id="mask-clear">Clear</button>
+
+                            <label style="display:flex; gap:8px; align-items:center;">
+                                <span style="white-space:nowrap;">Brush</span>
+                                <input type="range" id="brush-size" min="1" max="200" value="32">
+                                <span id="brush-size-val">32</span>
+                            </label>
+
+                            <button type="button" id="tool-brush">Brush</button>
+                            <button type="button" id="tool-eraser">Eraser</button>
+
+                            <button type="button" id="mask-apply" style="font-weight:700;">Use mask</button>
+                        </div>
                     </div>
 
-                    <div style="margin-bottom:10px;">
-                        <label>Brush size: <span id="brush-size-val">32</span></label><br/>
-                        <input type="range" id="brush-size" min="1" max="200" value="32" style="width:100%;">
+                    <div style="flex:1; display:flex; overflow:hidden;">
+                        <div id="maskScroll" style="flex:1; overflow:auto; background:#111; padding:16px;">
+                            <div id="maskZoomWrap" style="position:relative; display:inline-block; transform-origin: 0 0;">
+                                <div style="position:relative; display:inline-block; border:1px solid #333; border-radius:12px; overflow:hidden; background:#000;">
+                                    <canvas id="mask-base" style="display:block;"></canvas>
+                                    <canvas id="mask-paint" style="position:absolute; left:0; top:0; cursor:crosshair;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="width: 280px; border-left:1px solid #eee; padding:14px; background:#fafafa;">
+                            <div style="font-weight:700; margin-bottom:8px;">Tips</div>
+                            <div style="color:#444; font-size:13px; line-height:1.4;">
+                                <div style="margin-bottom:8px;">• Paint = masked area (white)</div>
+                                <div style="margin-bottom:8px;">• Eraser makes area unmasked</div>
+                                <div style="margin-bottom:8px;">• Overlay helps see what you selected</div>
+                                <div>• “Use mask” will export PNG (black bg + white mask) into the file field</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mask-extra" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px; margin-bottom:10px;">
-                        <label style="display:flex; gap:8px; align-items:center;">
-                            <span style="white-space:nowrap;">Overlay</span>
-                            <input id="maskOverlayOpacity" type="range" min="0.1" max="0.8" step="0.05" value="0.35">
-                            <span id="maskOverlayOpacityVal">0.35</span>
-                        </label>
-
-                        <button type="button" id="maskInvertBtn">Invert mask</button>
-                    </div>
-
-                    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
-                        <button type="button" id="mask-undo">Undo</button>
-                        <button type="button" id="mask-clear">Clear</button>
-                    </div>
-
-                    <div style="margin-bottom:10px;">
-                        <button type="button" id="mask-apply" style="width:100%;">Use drawn mask</button>
-                    </div>
-
-                    <div style="color:#666; font-size:12px;">
-                        White = masked area, Black = no mask.
-                    </div>
-                    </div>
                 </div>
             </div>
+            {# /MODAL #}
 
         </div>
-    {% endif %}
+    {% endif %} -->
 
     {# --------------------------------------------------------
        2) ONE GLOBAL ACCORDION FOR "HIDDEN-ONLY" GROUPS
-       (groups where there were no view/text/image, only hidden)
        -------------------------------------------------------- #}
     {% if hidden_only_groups and hidden_only_groups|length > 0 %}
         <details style="margin: 18px 0; padding: 14px; border: 1px dashed #ddd; border-radius: 12px; max-width: 980px;">
             <summary style="cursor: pointer; font-weight: 700;">
-                Advanced settings ({{ hidden_only_groups|length }} groups)
+                Расширенные настройки ({{ hidden_only_groups|length }} groups)
             </summary>
 
             <div style="margin-top: 14px;">
@@ -183,7 +351,6 @@
                     <div style="margin: 14px 0; padding: 12px; border: 1px solid #eee; border-radius: 12px;">
                         <h4 style="margin: 0 0 10px 0;">{{ g.label }}</h4>
 
-                        {# text in hidden-only groups (rare), but handle #}
                         {% for inp in g.text %}
                             {% if inp.view != 'no_view' %}
                                 <div style="margin-bottom: 14px;">
@@ -200,7 +367,6 @@
                             {% endif %}
                         {% endfor %}
 
-                        {# hidden params #}
                         {% for p in g.params_hidden %}
                             <div style="margin-bottom: 12px;">
                                 <label>{{ p.label }}</label><br>
@@ -212,7 +378,6 @@
                             </div>
                         {% endfor %}
 
-                        {# if somehow params_view appear here, render too #}
                         {% for p in g.params_view %}
                             <div style="margin-bottom: 12px;">
                                 <label><b>{{ p.label }}</b></label><br>
@@ -224,12 +389,10 @@
                             </div>
                         {% endfor %}
 
-                        {# no_view params must still be sent #}
                         {% for p in g.params_no_view %}
                             <input type="hidden" name="param__{{ p.key }}" value="{{ p.default }}">
                         {% endfor %}
 
-                        {# images in hidden-only groups (rare), but handle #}
                         {% for img in g.images %}
                             {% if img.view != 'no_view' %}
                                 <div style="margin-top: 10px;">
@@ -247,7 +410,6 @@
         </details>
     {% endif %}
 
-    <!-- <button type="submit">Run workflow</button> -->
 </form>
 
 <script>
@@ -280,16 +442,13 @@
         const baseInput = document.querySelector(`input[type=file][name="${CSS.escape(baseInputName)}"]`);
 
         function syncMaskVisibility() {
-            // если base image не найден — не скрываем (лучше показать, чем потерять)
             if (!baseInput) {
                 maskGroup.style.display = '';
                 return;
             }
-
             const baseSelected = baseInput.files && baseInput.files.length > 0;
             maskGroup.style.display = baseSelected ? '' : 'none';
 
-            // если поле скрыли — очищаем выбранную маску
             if (!baseSelected) {
                 const maskInput = maskGroup.querySelector('input[type=file][name="mask"]');
                 if (maskInput) {
@@ -299,24 +458,28 @@
             }
         }
 
-        if (baseInput) {
-            baseInput.addEventListener('change', syncMaskVisibility);
-        }
+        if (baseInput) baseInput.addEventListener('change', syncMaskVisibility);
         syncMaskVisibility();
 
         (function () {
-            const maskGroup = document.getElementById('mask-group');
-            if (!maskGroup) return;
-
-            const dependsOn = maskGroup.getAttribute('data-depends-on');
-            const baseInputName = `image__${dependsOn}`;
-            const baseInput = document.querySelector(`input[type=file][name="${CSS.escape(baseInputName)}"]`);
             const maskInput = maskGroup.querySelector(`input[type=file][name="mask"]`);
+            const btnOpen = document.getElementById('mask-open');
+            const modal = document.getElementById('mask-modal');
+            const backdrop = document.getElementById('mask-modal-backdrop');
+            const btnClose = document.getElementById('mask-close');
 
-            const editor = document.getElementById('mask-editor');
             const canvasBase = document.getElementById('mask-base');
             const canvasPaint = document.getElementById('mask-paint');
-            if (!editor || !canvasBase || !canvasPaint || !maskInput) return;
+
+            const zoomWrap = document.getElementById('maskZoomWrap');
+            const scrollBox = document.getElementById('maskScroll');
+
+            const zoomRange = document.getElementById('maskZoom');
+            const zoomVal = document.getElementById('maskZoomVal');
+            const fitBtn = document.getElementById('maskFitBtn');
+            const btn100 = document.getElementById('mask100Btn');
+
+            if (!btnOpen || !modal || !canvasBase || !canvasPaint || !maskInput) return;
 
             const ctxBase = canvasBase.getContext('2d', { willReadFrequently: true });
             const ctxPaint = canvasPaint.getContext('2d', { willReadFrequently: true });
@@ -324,13 +487,6 @@
             // Реальная маска хранится отдельно (offscreen)
             const maskBuf = document.createElement('canvas');
             const ctxMask = maskBuf.getContext('2d', { willReadFrequently: true });
-
-            // Настройка overlay (как подсветка)
-            // const OVERLAY_COLOR = 'rgba(255, 0, 0, 0.35)';
-            function getOverlayColor() {
-                const a = overlayOpacity ? Number(overlayOpacity.value || 0.35) : 0.35;
-                return `rgba(255, 0, 0, ${a})`;
-            }
 
             const btnBrush = document.getElementById('tool-brush');
             const btnEraser = document.getElementById('tool-eraser');
@@ -347,33 +503,36 @@
             let brushSize = parseInt(rangeSize.value || '32', 10);
             let drawing = false;
             let lastX = 0, lastY = 0;
-
-            // 1-step undo (MVP). Можно расширить в stack.
             let undoImageData = null;
+
+            // base display sizing (fit) + separate zoom factor
+            let displayScale = 1; // fit-to-box scale for CSS width/height
+            let zoomFactor = 1;   // additional transform on wrapper
+
+            function getOverlayColor() {
+                const a = overlayOpacity ? Number(overlayOpacity.value || 0.35) : 0.35;
+                return `rgba(255, 0, 0, ${a})`;
+            }
 
             function redrawOverlay() {
                 const w = canvasPaint.width, h = canvasPaint.height;
                 ctxPaint.clearRect(0, 0, w, h);
 
-                // Рисуем цветную заливку
                 ctxPaint.save();
-                // ctxPaint.fillStyle = OVERLAY_COLOR;
                 ctxPaint.fillStyle = getOverlayColor();
                 ctxPaint.fillRect(0, 0, w, h);
 
-                // Оставляем заливку только там, где маска НЕ прозрачная
                 ctxPaint.globalCompositeOperation = 'destination-in';
                 ctxPaint.drawImage(maskBuf, 0, 0);
                 ctxPaint.restore();
             }
 
-            if (overlayOpacity && overlayOpacityVal) {
-                overlayOpacityVal.textContent = String(overlayOpacity.value);
-
-                overlayOpacity.addEventListener('input', () => {
-                    overlayOpacityVal.textContent = String(overlayOpacity.value);
-                    redrawOverlay();
-                });
+            function snapshotUndo() {
+                try {
+                    undoImageData = ctxMask.getImageData(0, 0, maskBuf.width, maskBuf.height);
+                } catch (e) {
+                    undoImageData = null;
+                }
             }
 
             function invertMask() {
@@ -381,27 +540,14 @@
                 if (!w || !h) return;
 
                 snapshotUndo();
-
                 const img = ctxMask.getImageData(0, 0, w, h);
                 const d = img.data;
-
-                // Мы рисуем белым в маску (rgb=255, alpha=255), фон прозрачный (alpha=0)
-                // Инверт: alpha = 255 - alpha, rgb оставим белым.
                 for (let i = 0; i < d.length; i += 4) {
-                    d[i] = 255;     // R
-                    d[i + 1] = 255; // G
-                    d[i + 2] = 255; // B
-                    d[i + 3] = 255 - d[i + 3]; // A
+                    d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+                    d[i + 3] = 255 - d[i + 3];
                 }
-
                 ctxMask.putImageData(img, 0, 0);
                 redrawOverlay();
-            }
-
-            if (btnInvert) {
-                btnInvert.addEventListener('click', () => {
-                    invertMask();
-                });
             }
 
             function setTool(t) {
@@ -415,21 +561,56 @@
                 sizeVal.textContent = String(v);
             }
 
+            function applyZoomUI() {
+                if (!zoomWrap) return;
+                zoomWrap.style.transform = `scale(${zoomFactor})`;
+                if (zoomVal) zoomVal.textContent = `${zoomFactor.toFixed(1)}x`;
+            }
+
+            function setZoomFactor(v) {
+                zoomFactor = Math.max(0.5, Math.min(4, v));
+                if (zoomRange) zoomRange.value = String(zoomFactor);
+                applyZoomUI();
+            }
+
+            function fitToScreen() {
+                if (!scrollBox) return;
+                const pad = 32; // scroll padding-ish
+                const availW = Math.max(200, scrollBox.clientWidth - pad);
+                const availH = Math.max(200, scrollBox.clientHeight - pad);
+
+                const iw = canvasBase.width || 1;
+                const ih = canvasBase.height || 1;
+
+                displayScale = Math.min(1, availW / iw, availH / ih);
+
+                canvasBase.style.width = Math.round(iw * displayScale) + 'px';
+                canvasBase.style.height = Math.round(ih * displayScale) + 'px';
+                canvasPaint.style.width = canvasBase.style.width;
+                canvasPaint.style.height = canvasBase.style.height;
+
+                setZoomFactor(1);
+                // scroll top-left after fit
+                scrollBox.scrollTop = 0;
+                scrollBox.scrollLeft = 0;
+            }
+
             setTool('brush');
             setBrushSize(brushSize);
 
             rangeSize.addEventListener('input', () => setBrushSize(parseInt(rangeSize.value, 10)));
-
             btnBrush.addEventListener('click', () => setTool('brush'));
             btnEraser.addEventListener('click', () => setTool('eraser'));
 
-            function snapshotUndo() {
-                try {
-                    undoImageData = ctxMask.getImageData(0, 0, maskBuf.width, maskBuf.height);
-                } catch (e) {
-                    undoImageData = null;
-                }
+            if (overlayOpacity && overlayOpacityVal) {
+                overlayOpacityVal.textContent = String(overlayOpacity.value);
+                overlayOpacity.addEventListener('input', () => {
+                    overlayOpacityVal.textContent = String(overlayOpacity.value);
+                    redrawOverlay();
+                });
             }
+
+            btnInvert.addEventListener('click', () => invertMask());
 
             btnUndo.addEventListener('click', () => {
                 if (!undoImageData) return;
@@ -439,7 +620,7 @@
 
             btnClear.addEventListener('click', () => {
                 snapshotUndo();
-                ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height); // прозрачная маска
+                ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height);
                 redrawOverlay();
             });
 
@@ -458,9 +639,8 @@
 
                 if (tool === 'brush') {
                     ctxMask.globalCompositeOperation = 'source-over';
-                    ctxMask.strokeStyle = '#fff'; // белая маска
+                    ctxMask.strokeStyle = '#fff';
                 } else {
-                    // eraser: стираем до прозрачности
                     ctxMask.globalCompositeOperation = 'destination-out';
                     ctxMask.strokeStyle = 'rgba(0,0,0,1)';
                 }
@@ -475,7 +655,7 @@
             }
 
             function onPointerDown(evt) {
-                if (!editor || editor.style.display === 'none') return;
+                if (modal.style.display === 'none') return;
                 drawing = true;
                 snapshotUndo();
                 const p = getPos(evt);
@@ -504,68 +684,94 @@
 
             async function loadBaseImageFromFile(file) {
                 return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = reject;
-                img.src = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(file);
                 });
             }
 
             async function setupEditorFromBaseImage() {
                 if (!baseInput || !baseInput.files || !baseInput.files[0]) {
-                editor.style.display = 'none';
-                return;
+                    return false;
                 }
 
                 const img = await loadBaseImageFromFile(baseInput.files[0]);
 
-                // 1) Реальный размер канваса = размер исходника
+                // Real canvas size = original pixels
                 canvasBase.width = img.naturalWidth;
                 canvasBase.height = img.naturalHeight;
                 canvasPaint.width = img.naturalWidth;
                 canvasPaint.height = img.naturalHeight;
 
-                // 2) Визуальный размер: ограничим, чтобы не раздувало страницу
-                const maxW = 768;
-                const scale = Math.min(1, maxW / img.naturalWidth);
-                canvasBase.style.width = Math.round(img.naturalWidth * scale) + 'px';
-                canvasBase.style.height = Math.round(img.naturalHeight * scale) + 'px';
-                canvasPaint.style.width = canvasBase.style.width;
-                canvasPaint.style.height = canvasBase.style.height;
-
-                // 3) Рисуем базу + инициализируем маску чёрным
                 ctxBase.clearRect(0, 0, canvasBase.width, canvasBase.height);
                 ctxBase.drawImage(img, 0, 0);
 
-                // подгоняем maskBuf под размер
                 maskBuf.width = img.naturalWidth;
                 maskBuf.height = img.naturalHeight;
-
-                // пустая маска (прозрачная)
                 ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height);
 
-                // и рисуем overlay (пока пустой)
                 redrawOverlay();
 
-                editor.style.display = '';
+                // Fit on open
+                fitToScreen();
+                return true;
             }
 
-            // Важное: показываем редактор только если base image выбран (depends_on логика)
-            async function syncEditor() {
+            function openModal() {
                 if (!baseInput || !baseInput.files || baseInput.files.length === 0) {
-                editor.style.display = 'none';
-                return;
+                    alert('Select base image first (depends_on).');
+                    return;
                 }
-                await setupEditorFromBaseImage();
+                modal.style.display = '';
+                document.body.style.overflow = 'hidden';
+                setupEditorFromBaseImage().catch(() => {});
             }
 
-            if (baseInput) baseInput.addEventListener('change', () => { syncEditor(); });
+            function closeModal() {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
 
-            // Кнопка "Use drawn mask" -> file input "mask"
+            btnOpen.addEventListener('click', openModal);
+            btnClose && btnClose.addEventListener('click', closeModal);
+            backdrop && backdrop.addEventListener('click', closeModal);
+
+            // Zoom UI
+            zoomRange && zoomRange.addEventListener('input', () => {
+                const v = parseFloat(zoomRange.value || '1');
+                setZoomFactor(v);
+            });
+            fitBtn && fitBtn.addEventListener('click', () => {
+                fitToScreen();
+            });
+            btn100 && btn100.addEventListener('click', () => {
+                // keep displayScale as-is, but reset zoom to 1 and set CSS size to 1:1 pixels
+                displayScale = 1;
+                canvasBase.style.width = canvasBase.width + 'px';
+                canvasBase.style.height = canvasBase.height + 'px';
+                canvasPaint.style.width = canvasBase.style.width;
+                canvasPaint.style.height = canvasBase.style.height;
+                setZoomFactor(1);
+            });
+
+            // ESC closes
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+            });
+
+            // If base image changes while modal open — rebuild
+            if (baseInput) {
+                baseInput.addEventListener('change', () => {
+                    if (modal.style.display !== 'none') {
+                        setupEditorFromBaseImage().catch(() => {});
+                    }
+                });
+            }
+
+            // Apply/export drawn mask into file input "mask"
             btnApply.addEventListener('click', async () => {
                 const w = maskBuf.width, h = maskBuf.height;
-
-                // temp canvas для экспорта (чёрный фон + белая маска)
                 const out = document.createElement('canvas');
                 out.width = w; out.height = h;
                 const outCtx = out.getContext('2d');
@@ -578,17 +784,14 @@
                 if (!blob) return;
 
                 const file = new File([blob], 'mask.png', { type: 'image/png' });
-
                 const dt = new DataTransfer();
                 dt.items.add(file);
                 maskInput.files = dt.files;
 
                 if (typeof setPreview === 'function') setPreview(maskInput);
-            });
 
-            // первичная синхронизация
-            // (mask-group сам скроется/покажется, а мы — редактор)
-            syncEditor();
+                closeModal();
+            });
         })();
     }
 </script>

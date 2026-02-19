@@ -6,7 +6,8 @@ from app.core.security import hash_password
 
 async def create_initial_admin(session: AsyncSession):
     result = await session.execute(select(User).where(User.role == 'ADMIN'))
-    admin_exists = result.scalar_one_or_none()
+    # admin_exists = result.scalar_one_or_none()
+    admin_exists = result.scalars().all()
 
     if admin_exists:
         return

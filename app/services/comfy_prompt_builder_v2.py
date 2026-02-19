@@ -90,6 +90,15 @@ def _value_ports_in_order(node_inputs: Any) -> List[dict]:
     return ports
 
 
+def get_idx_seed(node_inputs: Any):
+    if isinstance(node_inputs, list):
+        for i, item in enumerate(node_inputs):
+            name = (item.get("name") or "").strip().lower()
+            if name == 'seed':
+                return i
+    return None
+
+
 def _align_widgets_values_for_seed_mode(ports: List[dict], values: List[Any]) -> List[Any]:
     """
     If values contains exactly one extra entry, and we can recognize it as seed-mode, drop it.
@@ -105,14 +114,24 @@ def _align_widgets_values_for_seed_mode(ports: List[dict], values: List[Any]) ->
 
     def is_mode(v: Any) -> bool:
         return isinstance(v, str) and v.strip().lower() in SEED_MODES
+    
+    seed_idx = get_idx_seed(ports)
+    if seed_idx is not None:
+        mode_pos = seed_idx + 1
+        if mode_pos < len(values) and isinstance(values[mode_pos], str) and is_mode(values[mode_pos]):
+            values.pop(mode_pos)
+        else:
+            last_name = (ports[-1].get("name") or "").strip().lower()
+            if last_name == "seed" and is_mode(values[-1]):
+                values.pop(-1)
 
-    first_name = (ports[0].get("name") or "").strip().lower()
-    last_name = (ports[-1].get("name") or "").strip().lower()
+    # first_name = (ports[0].get("name") or "").strip().lower()
+    # last_name = (ports[-1].get("name") or "").strip().lower()
 
-    if first_name == "seed" and len(values) >= 2 and is_mode(values[1]):
-        return [values[0]] + values[2:]
-    if last_name == "seed" and is_mode(values[-1]):
-        return values[:-1]
+    # if first_name == "seed" and len(values) >= 2 and is_mode(values[1]):
+    #     return [values[0]] + values[2:]
+    # if last_name == "seed" and is_mode(values[-1]):
+    #     return values[:-1]
 
     return values
 

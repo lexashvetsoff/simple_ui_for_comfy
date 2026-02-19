@@ -1,0 +1,34 @@
+<div class="workflow-card">
+    <div class="card-header">
+        <h3 class="workflow-title">{{ item.title }}</h3>
+        <span class="workflow-version">v{{ item.version }}</span>
+    </div>
+
+    <p class="workflow-description">
+        {{ item.description }}
+    </p>
+
+    {% if user.role == 'ADMIN' %}
+        <div class="workflow-badges">
+            {% for badge in item.badges %}
+                <span class="badge badge-{{ badge | lower }}">{{ badge }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if item.modes %}
+    <div class="workflow-modes">
+        {% for mode in item.mode %}
+            <span class="mode">{{ mode }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="workflow-footer">
+        <span class="complexity complexity-{{ item.complexity | lower }}">
+            {{ item.complexity }}
+        </span>
+
+        <a href="/user/workflows/{{ item.slug }}" class="btn btn-primary">Run</a>
+    </div>
+</div>

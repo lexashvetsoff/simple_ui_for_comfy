@@ -796,4 +796,515 @@
     }
 </script>
 
+
+<!-- TODO добавлено выделение курсора кисти - не взлетело, надо разобраться почему и исправить -->
+<!-- <script>
+    // --- previews ---
+    function setPreview(inputEl) {
+        const name = inputEl.getAttribute('name');
+        const box = document.querySelector(`.preview[data-preview-for="${CSS.escape(name)}"]`);
+        if (!box) return;
+        const img = box.querySelector('img');
+        const f = inputEl.files && inputEl.files[0];
+        if (!f) {
+            box.style.display = 'none';
+            img.removeAttribute('src');
+            return;
+        }
+        const url = URL.createObjectURL(f);
+        img.src = url;
+        box.style.display = 'block';
+    }
+
+    document.querySelectorAll('input[type=file]').forEach((inp) => {
+        inp.addEventListener('change', () => setPreview(inp));
+    });
+
+    // --- mask depends_on logic ---
+    const maskGroup = document.getElementById('mask-group');
+    if (maskGroup) {
+        const dependsOn = maskGroup.getAttribute('data-depends-on');
+        const baseInputName = `image__${dependsOn}`;
+        const baseInput = document.querySelector(`input[type=file][name="${CSS.escape(baseInputName)}"]`);
+
+        function syncMaskVisibility() {
+            if (!baseInput) {
+                maskGroup.style.display = '';
+                return;
+            }
+            const baseSelected = baseInput.files && baseInput.files.length > 0;
+            maskGroup.style.display = baseSelected ? '' : 'none';
+
+            if (!baseSelected) {
+                const maskInput = maskGroup.querySelector('input[type=file][name="mask"]');
+                if (maskInput) {
+                    maskInput.value = '';
+                    setPreview(maskInput);
+                }
+            }
+        }
+
+        if (baseInput) baseInput.addEventListener('change', syncMaskVisibility);
+        syncMaskVisibility();
+
+        (function () {
+            const maskInput = maskGroup.querySelector(`input[type=file][name="mask"]`);
+            const btnOpen = document.getElementById('mask-open');
+            const modal = document.getElementById('mask-modal');
+            const backdrop = document.getElementById('mask-modal-backdrop');
+            const btnClose = document.getElementById('mask-close');
+
+            const canvasBase = document.getElementById('mask-base');
+            const canvasPaint = document.getElementById('mask-paint');
+
+            // brush cursor overlay element (must exist in HTML)
+            const brushCursor = document.getElementById('brushCursor');
+
+            const zoomWrap = document.getElementById('maskZoomWrap');
+            const scrollBox = document.getElementById('maskScroll');
+
+            const zoomRange = document.getElementById('maskZoom');
+            const zoomVal = document.getElementById('maskZoomVal');
+            const fitBtn = document.getElementById('maskFitBtn');
+            const btn100 = document.getElementById('mask100Btn');
+
+            if (!btnOpen || !modal || !canvasBase || !canvasPaint || !maskInput) return;
+
+            const ctxBase = canvasBase.getContext('2d', { willReadFrequently: true });
+            const ctxPaint = canvasPaint.getContext('2d', { willReadFrequently: true });
+
+            // Реальная маска хранится отдельно (offscreen)
+            const maskBuf = document.createElement('canvas');
+            const ctxMask = maskBuf.getContext('2d', { willReadFrequently: true });
+
+            const btnBrush = document.getElementById('tool-brush');
+            const btnEraser = document.getElementById('tool-eraser');
+            const rangeSize = document.getElementById('brush-size');
+            const sizeVal = document.getElementById('brush-size-val');
+            const btnUndo = document.getElementById('mask-undo');
+            const btnClear = document.getElementById('mask-clear');
+            const overlayOpacity = document.getElementById('maskOverlayOpacity');
+            const overlayOpacityVal = document.getElementById('maskOverlayOpacityVal');
+            const btnInvert = document.getElementById('maskInvertBtn');
+            const btnApply = document.getElementById('mask-apply');
+
+            let tool = 'brush';
+            let brushSize = parseInt(rangeSize.value || '32', 10);
+            let drawing = false;
+            let lastX = 0, lastY = 0;
+            let undoImageData = null;
+
+            // base display sizing (fit) + separate zoom factor
+            let displayScale = 1; // fit-to-box scale for CSS width/height
+            let zoomFactor = 1;   // additional transform on wrapper
+
+            // last mouse position (for keeping cursor stable on zoom/resize)
+            let lastClientX = null;
+            let lastClientY = null;
+
+            function getOverlayColor() {
+                const a = overlayOpacity ? Number(overlayOpacity.value || 0.35) : 0.35;
+                return `rgba(255, 0, 0, ${a})`;
+            }
+
+            function redrawOverlay() {
+                const w = canvasPaint.width, h = canvasPaint.height;
+                ctxPaint.clearRect(0, 0, w, h);
+
+                ctxPaint.save();
+                ctxPaint.fillStyle = getOverlayColor();
+                ctxPaint.fillRect(0, 0, w, h);
+
+                ctxPaint.globalCompositeOperation = 'destination-in';
+                ctxPaint.drawImage(maskBuf, 0, 0);
+                ctxPaint.restore();
+            }
+
+            function snapshotUndo() {
+                try {
+                    undoImageData = ctxMask.getImageData(0, 0, maskBuf.width, maskBuf.height);
+                } catch (e) {
+                    undoImageData = null;
+                }
+            }
+
+            function invertMask() {
+                const w = maskBuf.width, h = maskBuf.height;
+                if (!w || !h) return;
+
+                snapshotUndo();
+                const img = ctxMask.getImageData(0, 0, w, h);
+                const d = img.data;
+                for (let i = 0; i < d.length; i += 4) {
+                    d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+                    d[i + 3] = 255 - d[i + 3];
+                }
+                ctxMask.putImageData(img, 0, 0);
+                redrawOverlay();
+            }
+
+            function setTool(t) {
+                tool = t;
+                btnBrush.disabled = (t === 'brush');
+                btnEraser.disabled = (t === 'eraser');
+
+                // cursor styling can be tweaked per tool (optional)
+                if (brushCursor) {
+                    if (t === 'eraser') {
+                        brushCursor.style.borderStyle = 'dashed';
+                        brushCursor.style.opacity = '0.85';
+                    } else {
+                        brushCursor.style.borderStyle = 'dotted';
+                        brushCursor.style.opacity = '1';
+                    }
+                }
+
+                if (lastClientX !== null && lastClientY !== null) {
+                    updateBrushCursor(lastClientX, lastClientY);
+                }
+            }
+
+            function setBrushSize(v) {
+                brushSize = v;
+                sizeVal.textContent = String(v);
+            }
+
+            // --- Brush cursor helpers ---
+            function hideBrushCursor() {
+                if (!brushCursor) return;
+                brushCursor.style.display = 'none';
+            }
+
+            function showBrushCursor() {
+                if (!brushCursor) return;
+                brushCursor.style.display = '';
+            }
+
+            function updateBrushCursor(clientX, clientY) {
+                if (!brushCursor) return;
+
+                if (modal.style.display === 'none') {
+                    hideBrushCursor();
+                    return;
+                }
+
+                const rect = canvasPaint.getBoundingClientRect();
+                const inside =
+                    clientX >= rect.left && clientX <= rect.right &&
+                    clientY >= rect.top && clientY <= rect.bottom;
+
+                if (!inside) {
+                    hideBrushCursor();
+                    return;
+                }
+
+                // rect.width already accounts for CSS-fit + zoom transform (scale)
+                const pxPerCanvasPx = rect.width / (canvasPaint.width || 1);
+
+                // brushSize is diameter in canvas pixels (lineWidth)
+                const diameterPx = Math.max(2, brushSize * pxPerCanvasPx);
+
+                brushCursor.style.width = `${diameterPx}px`;
+                brushCursor.style.height = `${diameterPx}px`;
+
+                const x = (clientX - rect.left) - diameterPx / 2;
+                const y = (clientY - rect.top) - diameterPx / 2;
+
+                brushCursor.style.transform = `translate(${x}px, ${y}px)`;
+                showBrushCursor();
+            }
+            // --- /Brush cursor helpers ---
+
+            function applyZoomUI() {
+                if (!zoomWrap) return;
+                zoomWrap.style.transform = `scale(${zoomFactor})`;
+                if (zoomVal) zoomVal.textContent = `${zoomFactor.toFixed(1)}x`;
+            }
+
+            function setZoomFactor(v) {
+                zoomFactor = Math.max(0.5, Math.min(4, v));
+                if (zoomRange) zoomRange.value = String(zoomFactor);
+                applyZoomUI();
+            }
+
+            function fitToScreen() {
+                if (!scrollBox) return;
+                const pad = 32;
+                const availW = Math.max(200, scrollBox.clientWidth - pad);
+                const availH = Math.max(200, scrollBox.clientHeight - pad);
+
+                const iw = canvasBase.width || 1;
+                const ih = canvasBase.height || 1;
+
+                displayScale = Math.min(1, availW / iw, availH / ih);
+
+                canvasBase.style.width = Math.round(iw * displayScale) + 'px';
+                canvasBase.style.height = Math.round(ih * displayScale) + 'px';
+                canvasPaint.style.width = canvasBase.style.width;
+                canvasPaint.style.height = canvasBase.style.height;
+
+                setZoomFactor(1);
+                scrollBox.scrollTop = 0;
+                scrollBox.scrollLeft = 0;
+
+                // refresh cursor position (if any)
+                if (lastClientX !== null && lastClientY !== null) {
+                    updateBrushCursor(lastClientX, lastClientY);
+                } else {
+                    hideBrushCursor();
+                }
+            }
+
+            setTool('brush');
+            setBrushSize(brushSize);
+
+            rangeSize.addEventListener('input', () => {
+                setBrushSize(parseInt(rangeSize.value, 10));
+                if (lastClientX !== null && lastClientY !== null) {
+                    updateBrushCursor(lastClientX, lastClientY);
+                }
+            });
+
+            btnBrush.addEventListener('click', () => setTool('brush'));
+            btnEraser.addEventListener('click', () => setTool('eraser'));
+
+            if (overlayOpacity && overlayOpacityVal) {
+                overlayOpacityVal.textContent = String(overlayOpacity.value);
+                overlayOpacity.addEventListener('input', () => {
+                    overlayOpacityVal.textContent = String(overlayOpacity.value);
+                    redrawOverlay();
+                });
+            }
+
+            btnInvert.addEventListener('click', () => invertMask());
+
+            btnUndo.addEventListener('click', () => {
+                if (!undoImageData) return;
+                ctxMask.putImageData(undoImageData, 0, 0);
+                redrawOverlay();
+            });
+
+            btnClear.addEventListener('click', () => {
+                snapshotUndo();
+                ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height);
+                redrawOverlay();
+            });
+
+            function getPos(evt) {
+                const rect = canvasPaint.getBoundingClientRect();
+                const x = (evt.clientX - rect.left) * (canvasPaint.width / rect.width);
+                const y = (evt.clientY - rect.top) * (canvasPaint.height / rect.height);
+                return { x, y };
+            }
+
+            function strokeLine(x0, y0, x1, y1) {
+                ctxMask.save();
+                ctxMask.lineCap = 'round';
+                ctxMask.lineJoin = 'round';
+                ctxMask.lineWidth = brushSize;
+
+                if (tool === 'brush') {
+                    ctxMask.globalCompositeOperation = 'source-over';
+                    ctxMask.strokeStyle = '#fff';
+                } else {
+                    ctxMask.globalCompositeOperation = 'destination-out';
+                    ctxMask.strokeStyle = 'rgba(0,0,0,1)';
+                }
+
+                ctxMask.beginPath();
+                ctxMask.moveTo(x0, y0);
+                ctxMask.lineTo(x1, y1);
+                ctxMask.stroke();
+                ctxMask.restore();
+
+                redrawOverlay();
+            }
+
+            function onPointerDown(evt) {
+                if (modal.style.display === 'none') return;
+                drawing = true;
+                snapshotUndo();
+                const p = getPos(evt);
+                lastX = p.x; lastY = p.y;
+                strokeLine(lastX, lastY, lastX, lastY);
+                canvasPaint.setPointerCapture(evt.pointerId);
+            }
+
+            function onPointerMove(evt) {
+                lastClientX = evt.clientX;
+                lastClientY = evt.clientY;
+
+                if (!evt.pointerType || evt.pointerType === 'mouse') {
+                    updateBrushCursor(evt.clientX, evt.clientY);
+                }
+
+                if (!drawing) return;
+                const p = getPos(evt);
+                strokeLine(lastX, lastY, p.x, p.y);
+                lastX = p.x; lastY = p.y;
+            }
+
+            function onPointerUp(evt) {
+                drawing = false;
+                try { canvasPaint.releasePointerCapture(evt.pointerId); } catch (e) { }
+            }
+
+            canvasPaint.addEventListener('pointerdown', onPointerDown);
+            canvasPaint.addEventListener('pointermove', onPointerMove);
+            canvasPaint.addEventListener('pointerup', onPointerUp);
+            canvasPaint.addEventListener('pointercancel', onPointerUp);
+
+            // cursor show/hide
+            canvasPaint.addEventListener('pointerenter', (evt) => {
+                lastClientX = evt.clientX;
+                lastClientY = evt.clientY;
+                if (!evt.pointerType || evt.pointerType === 'mouse') {
+                    updateBrushCursor(evt.clientX, evt.clientY);
+                }
+            });
+
+            canvasPaint.addEventListener('pointerleave', () => {
+                hideBrushCursor();
+            });
+
+            async function loadBaseImageFromFile(file) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(file);
+                });
+            }
+
+            async function setupEditorFromBaseImage() {
+                if (!baseInput || !baseInput.files || !baseInput.files[0]) {
+                    return false;
+                }
+
+                const img = await loadBaseImageFromFile(baseInput.files[0]);
+
+                // Real canvas size = original pixels
+                canvasBase.width = img.naturalWidth;
+                canvasBase.height = img.naturalHeight;
+                canvasPaint.width = img.naturalWidth;
+                canvasPaint.height = img.naturalHeight;
+
+                ctxBase.clearRect(0, 0, canvasBase.width, canvasBase.height);
+                ctxBase.drawImage(img, 0, 0);
+
+                maskBuf.width = img.naturalWidth;
+                maskBuf.height = img.naturalHeight;
+                ctxMask.clearRect(0, 0, maskBuf.width, maskBuf.height);
+
+                redrawOverlay();
+
+                // Fit on open
+                fitToScreen();
+                return true;
+            }
+
+            function openModal() {
+                if (!baseInput || !baseInput.files || baseInput.files.length === 0) {
+                    alert('Select base image first (depends_on).');
+                    return;
+                }
+                modal.style.display = '';
+                document.body.style.overflow = 'hidden';
+
+                hideBrushCursor();
+                lastClientX = null;
+                lastClientY = null;
+
+                setupEditorFromBaseImage().catch(() => { });
+            }
+
+            function closeModal() {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+
+                hideBrushCursor();
+                lastClientX = null;
+                lastClientY = null;
+            }
+
+            btnOpen.addEventListener('click', openModal);
+            btnClose && btnClose.addEventListener('click', closeModal);
+            backdrop && backdrop.addEventListener('click', closeModal);
+
+            // Zoom UI
+            zoomRange && zoomRange.addEventListener('input', () => {
+                const v = parseFloat(zoomRange.value || '1');
+                setZoomFactor(v);
+                if (lastClientX !== null && lastClientY !== null) {
+                    updateBrushCursor(lastClientX, lastClientY);
+                }
+            });
+
+            fitBtn && fitBtn.addEventListener('click', () => {
+                fitToScreen();
+                if (lastClientX !== null && lastClientY !== null) {
+                    updateBrushCursor(lastClientX, lastClientY);
+                } else {
+                    hideBrushCursor();
+                }
+            });
+
+            btn100 && btn100.addEventListener('click', () => {
+                // keep displayScale as-is, but reset zoom to 1 and set CSS size to 1:1 pixels
+                displayScale = 1;
+                canvasBase.style.width = canvasBase.width + 'px';
+                canvasBase.style.height = canvasBase.height + 'px';
+                canvasPaint.style.width = canvasBase.style.width;
+                canvasPaint.style.height = canvasBase.style.height;
+                setZoomFactor(1);
+
+                if (lastClientX !== null && lastClientY !== null) {
+                    updateBrushCursor(lastClientX, lastClientY);
+                } else {
+                    hideBrushCursor();
+                }
+            });
+
+            // ESC closes
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+            });
+
+            // If base image changes while modal open — rebuild
+            if (baseInput) {
+                baseInput.addEventListener('change', () => {
+                    if (modal.style.display !== 'none') {
+                        setupEditorFromBaseImage().catch(() => { });
+                    }
+                });
+            }
+
+            // Apply/export drawn mask into file input "mask"
+            btnApply.addEventListener('click', async () => {
+                const w = maskBuf.width, h = maskBuf.height;
+                const out = document.createElement('canvas');
+                out.width = w; out.height = h;
+                const outCtx = out.getContext('2d');
+
+                outCtx.fillStyle = '#000';
+                outCtx.fillRect(0, 0, w, h);
+                outCtx.drawImage(maskBuf, 0, 0);
+
+                const blob = await new Promise((resolve) => out.toBlob(resolve, 'image/png'));
+                if (!blob) return;
+
+                const file = new File([blob], 'mask.png', { type: 'image/png' });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                maskInput.files = dt.files;
+
+                if (typeof setPreview === 'function') setPreview(maskInput);
+
+                closeModal();
+            });
+        })();
+    }
+</script> -->
+
+
 {% endblock %}

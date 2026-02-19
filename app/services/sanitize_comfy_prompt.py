@@ -5,6 +5,7 @@ SKIP_CLASS_TYPES = {
     "MarkdownNote",
     "Label (rgthree)",
     "Fast Groups Muter (rgthree)",
+    "Fast Groups Bypasser (rgthree)",
     "Image Comparer (rgthree)",
 }
 

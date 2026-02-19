@@ -1,32 +1,132 @@
-<div class="workflow-card">
-    <div class="card-header">
-        <h3 class="workflow-title">{{ item.title }}</h3>
-        <span class="workflow-version">v{{ item.version }}</span>
-    </div>
+<style>
+  .workflow-card {
+    display: block;               /* чтобы ссылка вела себя как блок */
+    text-decoration: none;        /* убираем подчёркивание */
+    color: inherit;               /* сохраняем цвет текста */
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
 
-    <p class="workflow-description">
-        {{ item.description }}
-    </p>
+  /* Hover-эффект: слегка увеличиваем и добавляем тень */
+  .workflow-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+  }
 
+  /* Оформление остальных элементов без изменений */
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .workflow-title {
+    margin: 0;
+  }
+
+  .workflow-version {
+    font-size: 0.9em;
+    color: #666;
+  }
+
+  .workflow-description {
+    margin: 8px 0;
+    color: #333;
+  }
+
+  .workflow-badges {
+    margin: 8px 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #e0e0e0;
+    margin-right: 4px;
+  }
+
+  .workflow-modes {
+    margin: 8px 0;
+  }
+
+  .mode {
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+
+  .workflow-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .complexity {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #eee;
+  }
+
+  /* Кнопка теперь не ссылка, а просто элемент */
+  .btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: default;              /* убираем курсор-ссылку, так как это не ссылка */
+  }
+
+  .btn-primary {
+    background: #007bff;
+  }
+
+  /* Стили для сложности (пример) */
+  .complexity-low { background: #d4edda; }
+  .complexity-medium { background: #fff3cd; }
+  .complexity-high { background: #f8d7da; }
+</style>
+
+<!-- Сама карточка теперь ссылка -->
+<a href="/user/workflows/{{ item.slug }}" class="workflow-card">
+  <div class="card-header">
+    <h3 class="workflow-title">{{ item.title }}</h3>
+    <span class="workflow-version">v{{ item.version }}</span>
+  </div>
+
+  <p class="workflow-description">
+    {{ item.description }}
+  </p>
+
+  {% if user.role == 'ADMIN' %}
     <div class="workflow-badges">
-        {% for badge in item.badges %}
-            <span class="badge badge-{{ badge | lower }}">{{ badge }}</span>
-        {% endfor %}
+      {% for badge in item.badges %}
+        <span class="badge badge-{{ badge | lower }}">{{ badge }}</span>
+      {% endfor %}
     </div>
+  {% endif %}
 
-    {% if item.modes %}
+  {% if item.modes %}
     <div class="workflow-modes">
-        {% for mode in item.mode %}
-            <span class="mode">{{ mode }}</span>
-        {% endfor %}
+      {% for mode in item.mode %}
+        <span class="mode">{{ mode }}</span>
+      {% endfor %}
     </div>
-    {% endif %}
+  {% endif %}
 
-    <div class="workflow-footer">
-        <span class="complexity complexity-{{ item.complexity | lower }}">
-            {{ item.complexity }}
-        </span>
+  <div class="workflow-footer">
+    <span class="complexity complexity-{{ item.complexity | lower }}">
+      {{ item.complexity }}
+    </span>
 
-        <a href="/user/workflows/{{ item.slug }}" class="btn btn-primary">Run</a>
-    </div>
-</div>
+    <!-- Вместо ссылки используем простой span, стилизованный под кнопку -->
+    <!-- <span class="btn btn-primary">Run</span> -->
+  </div>
+</a>

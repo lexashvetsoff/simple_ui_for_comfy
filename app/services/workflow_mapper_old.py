@@ -1,27 +1,30 @@
+# app/services/workflow_mapper.py
 import re
+import json
 import random
 from copy import deepcopy
-from typing import Dict, Any
+from typing import Any, Dict
 from fastapi import HTTPException
+
 from app.schemas.workflow_spec_v2 import (
     WorkflowSpecV2,
-    TextInputSpec,
-    ImageInputSpec,
-    MaskInputSpec,
     ParamInputSpec,
-    BindingSpec
+    BindingSpec,
 )
 
+
+# ------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------
 
 def normalize_workflow_for_comfy(workflow: dict) -> dict:
     """
     Converts ComfyUI UI-exported workflow to API-ready prompt format.
     """
-    for node in workflow.get('nodes', []):
+    for node in workflow.get("nodes", []):
         # UI uses "type", API requires "class_type"
-        if 'class_type' not in node:
-            node['class_type'] = node.get('type')
-    
+        if "class_type" not in node:
+            node["class_type"] = node.get("type")
     return workflow
 
 
@@ -63,7 +66,7 @@ def _find_widget_field_index_in_inputs_list(node_inputs: list, field_name: str) 
     """
     if not isinstance(field_name, str) or not field_name:
         return None
-    
+
     widget_pos = 0
     for item in node_inputs:
         if not isinstance(item, dict):
@@ -71,16 +74,16 @@ def _find_widget_field_index_in_inputs_list(node_inputs: list, field_name: str) 
             continue
 
         # linked port -> не виджет
-        if item.get('link') is not None:
+        if item.get("link") is not None:
             continue
 
         # это виджет (обычно имеет name и widget)
-        name = item.get('name')
+        name = item.get("name")
         if name == field_name:
             return widget_pos
-        
+
         widget_pos += 1
-    
+
     return None
 
 
@@ -97,6 +100,96 @@ def _try_set_nth_literal_in_inputs(node_inputs: list, widget_idx: int, value: An
     pos = literal_positions[widget_idx]
     node_inputs[pos] = value
 
+
+def _node_type(node: dict) -> str:
+    # ComfyUI UI-workflow обычно хранит type
+    # иногда у нас уже бывает class_type
+    t = node.get("class_type") or node.get("type") or ""
+
+    # на всякий случай: некоторые воркфлоу прячут название в properties
+    if not t:
+        props = node.get("properties") or {}
+        t = props.get("Node name for S&R") or ""
+
+    return str(t)
+
+
+def _is_empty(v: Any) -> bool:
+    return v is None or (isinstance(v, str) and v.strip() == "")
+
+
+def _coerce_value(param: ParamInputSpec, raw_value: Any) -> Any:
+    """
+    - Empty values ("", None) do NOT overwrite defaults.
+    - Coerce to param.type where possible.
+    - If coercion fails -> fallback to default.
+    """
+    if _is_empty(raw_value):
+        return param.default
+
+    value = raw_value
+    try:
+        if param.type == "int":
+            if isinstance(value, bool):
+                return int(value)
+            if isinstance(value, int):
+                return value
+            if isinstance(value, float):
+                return int(value)
+            if isinstance(value, str):
+                return int(float(value.strip()))
+            return int(value)
+
+        if param.type == "float":
+            if isinstance(value, bool):
+                return float(int(value))
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str):
+                return float(value.strip())
+            return float(value)
+
+        if param.type == "bool":
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return bool(value)
+            if isinstance(value, str):
+                s = value.strip().lower()
+                if s in {"true", "1", "yes", "y", "on"}:
+                    return True
+                if s in {"false", "0", "no", "n", "off"}:
+                    return False
+                # non-empty string => True
+                return True
+            return bool(value)
+
+        # "text" / anything else
+        return value
+
+    except Exception:
+        return param.default
+
+
+def _enforce_choices(param: ParamInputSpec, value: Any) -> Any:
+    choices = getattr(param, "choices", None)
+    if choices:
+        if value not in choices:
+            return param.default
+    return value
+
+
+def _ensure_inputs_dict(node: dict) -> dict:
+    node_inputs = node.get("inputs")
+    if not isinstance(node_inputs, dict):
+        node["inputs"] = {}
+        node_inputs = node["inputs"]
+    return node_inputs
+
+
+# ------------------------------------------------------------
+# Binding application
+# ------------------------------------------------------------
 
 def apply_binding(workflow: dict, binding: BindingSpec, value: Any) -> None:
     """
@@ -150,68 +243,31 @@ def apply_binding(workflow: dict, binding: BindingSpec, value: Any) -> None:
     # 2) dict inputs: simple field name set
     # ------------------------------------------------------------
     if isinstance(node_inputs, dict):
-        # binding.field must be the actual input name ("text", "width", etc)
         node_inputs[str(field)] = value
         return
 
     # ------------------------------------------------------------
-    # 3) list inputs: can be:
-    #    - literals
-    #    - dicts describing ports with link/widget metadata
-    #    Here, "0"/0 means widget index, not port index.
+    # 3) list inputs: UI-style list
     # ------------------------------------------------------------
     if isinstance(node_inputs, list):
-        # если пришло widget_N / "0" / 0
         widx = _widget_index(field)
         if widx is None:
-            # если пришло имя поля ("image", "seed", ...)
             if isinstance(field, str):
                 widx = _find_widget_field_index_in_inputs_list(node_inputs, field)
             if widx is None:
-                return # неизвестно что делать
-        
-        # пишем в widgets_values
+                return
+
         if not isinstance(widgets_values, list):
             node["widgets_values"] = []
             widgets_values = node["widgets_values"]
-        
+
         _ensure_list_size(widgets_values, widx)
         widgets_values[widx] = value
 
-        # и в дублирующиеся literal-элементы (если есть)
         _try_set_nth_literal_in_inputs(node_inputs, widx, value)
         return
-    
-    # if isinstance(node_inputs, list):
-    #     widx = _widget_index(field)
-    #     if widx is None:
-    #         # if someone passed non-widget field for list-inputs — ignore safely
-    #         return
 
-    #     # Prefer widgets_values if present (UI truth source)
-    #     if isinstance(widgets_values, list):
-    #         _ensure_list_size(widgets_values, widx)
-    #         widgets_values[widx] = value
-
-    #     # Also try update literal duplication
-    #     _try_set_nth_literal_in_inputs(node_inputs, widx, value)
-    #     return
-
-    # unknown structure
     return
-
-
-def _node_type(node: dict) -> str:
-    # ComfyUI UI-workflow обычно хранит type
-    # иногда у нас уже бывает class_type
-    t = node.get("class_type") or node.get("type") or ""
-
-    # на всякий случай: некоторые воркфлоу прячут название в properties
-    if not t:
-        props = node.get("properties") or {}
-        t = props.get("Node name for S&R") or ""
-
-    return str(t)
 
 
 def apply_random_seed_if_needed(workflow: dict):
@@ -235,17 +291,54 @@ def apply_random_seed_if_needed(workflow: dict):
             widgets[0] = random.randint(0, 2**63 - 1)
 
 
+def apply_param(workflow: dict, param: ParamInputSpec, value: Any) -> None:
+    """
+    IMPORTANT FIX:
+    Prefer writing into node["inputs"][param.name] because Comfy API validation
+    uses inputs dict. widgets_values is UI artifact and can be ignored/misaligned.
+    """
+    if not param.binding:
+        return
+
+    nodes = workflow.get("nodes", [])
+    try:
+        nid = int(param.binding.node_id)
+    except Exception:
+        return
+
+    node = _find_node(nodes, nid)
+    if not node:
+        return
+
+    # 1) Prefer explicit input name
+    param_name = getattr(param, "name", None)
+    if isinstance(param_name, str) and param_name:
+        node_inputs = _ensure_inputs_dict(node)
+        node_inputs[param_name] = value
+    
+    # print('='*100)
+    # print(param)
+    # print(f'param_name: {param_name}    value: {value}')
+    # print()
+
+    # 2) Keep legacy binding write (widgets_values etc.) for UI-compat
+    apply_binding(workflow, param.binding, value)
+
+
+# ------------------------------------------------------------
+# Main mapper
+# ------------------------------------------------------------
+
 def map_inputs_to_workflow(
-        *,
-        workflow_json: dict,
-        spec: WorkflowSpecV2,
-        text_inputs: dict,
-        param_inputs: dict,
-        uploaded_files: dict,
-        mode: str = 'default'
+    *,
+    workflow_json: dict,
+    spec: WorkflowSpecV2,
+    text_inputs: dict,
+    param_inputs: dict,
+    uploaded_files: dict,
+    mode: str = "default",
 ) -> dict:
     workflow = deepcopy(workflow_json)
-
     # validate mode
     modes = {m.id for m in spec.modes}
     if mode not in modes:
@@ -263,9 +356,12 @@ def map_inputs_to_workflow(
     # 1) PARAMS (first) — but don't overwrite TEXT bindings
     # ------------------------------------------------------------
     for param in spec.inputs.params:
-        value = param_inputs.get(param.key, param.default)
-        if value is None or not param.binding:
+        if not param.binding:
             continue
+
+        raw = param_inputs.get(param.key, None)
+        value = _coerce_value(param, raw)
+        value = _enforce_choices(param, value)
 
         # map by mode if needed
         if param.binding.map:
@@ -275,11 +371,13 @@ def map_inputs_to_workflow(
 
         bkey = (str(param.binding.node_id), str(param.binding.field))
         if bkey in protected:
-            # This param targets the same place as a TEXT input (e.g., node 6 widget_0)
-            # Skip it so TEXT controls this binding.
             continue
 
-        apply_binding(workflow, param.binding, value)
+        # print('='*100)
+        # print(f'param: {param}  value: {value}')
+        # print()
+
+        apply_param(workflow, param, value)
 
     # ------------------------------------------------------------
     # 2) IMAGES
@@ -292,14 +390,19 @@ def map_inputs_to_workflow(
         if not img.binding:
             continue
         apply_binding(workflow, img.binding, uploaded_files[img.key])
-    
+
+    # For LoadImage nodes in UI-workflows: widget_1 = upload mode
     for img in spec.inputs.images:
         if img.key not in uploaded_files:
             continue
-        nid = int(img.binding.node_id)
+        if not img.binding:
+            continue
+        try:
+            nid = int(img.binding.node_id)
+        except Exception:
+            continue
         node = _find_node(workflow.get("nodes", []), nid)
         if node and (node.get("type") == "LoadImage" or node.get("class_type") == "LoadImage"):
-            # widget_1 = upload mode
             apply_binding(workflow, BindingSpec(node_id=str(nid), field="widget_1"), "image")
 
     # ------------------------------------------------------------
@@ -307,8 +410,24 @@ def map_inputs_to_workflow(
     # ------------------------------------------------------------
     if spec.inputs.mask:
         mask = spec.inputs.mask
+        # if mask.key in uploaded_files and mask.binding:
+        #     apply_binding(workflow, mask.binding, uploaded_files[mask.key])
+        # path = uploaded_files.get(mask.key) or uploaded_files.get("mask")
+        # if path and mask.binding:
+        #     apply_binding(workflow, mask.binding, path)
         if mask.key in uploaded_files and mask.binding:
-            apply_binding(workflow, mask.binding, uploaded_files[mask.key])
+            # если маска зависит от image_* и биндинг совпадает с биндингом этой картинки,
+            # то маску уже должны были "вшить" в PNG (alpha) на этапе подготовки файлов.
+            same_as_dep_image = False
+            if mask.depends_on:
+                dep = next((i for i in spec.inputs.images if i.key == mask.depends_on), None)
+                if dep and dep.binding:
+                    same_as_dep_image = (
+                        str(dep.binding.node_id) == str(mask.binding.node_id)
+                        and str(dep.binding.field) == str(mask.binding.field)
+                    )
+            if not same_as_dep_image:
+                apply_binding(workflow, mask.binding, uploaded_files[mask.key])
 
     # ------------------------------------------------------------
     # 4) TEXT (last) — final authority
@@ -319,7 +438,6 @@ def map_inputs_to_workflow(
         if not inp.binding:
             continue
         apply_binding(workflow, inp.binding, text_inputs[inp.key])
-    
-    apply_random_seed_if_needed(workflow)
 
+    apply_random_seed_if_needed(workflow)
     return workflow

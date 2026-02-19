@@ -212,6 +212,7 @@ def build_prompt_from_ui_workflow(workflow: dict) -> Dict[str, Any]:
             "Label (rgthree)",
             "Fast Groups Muter (rgthree)",
             "Image Comparer (rgthree)",
+            "Fast Groups Bypasser (rgthree)",
         }:
             continue
 

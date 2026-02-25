@@ -1,6 +1,7 @@
 import uuid
 import json
 from datetime import datetime
+from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +25,42 @@ from app.services.comfy_service import _patch_widget_fields_for_seed_in_spec
 router = APIRouter(prefix='/user/workflows', tags=['user-workflows'])
 
 
+def sort_loadimage_nodes(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Сортирует элементы с label='LoadImage' по полю label внутри списка images.
+    Если таких элементов меньше двух, возвращает копию исходного списка.
+    """
+    # Собираем индексы и сами элементы, у которых label == 'LoadImage'
+    loadimage_indices = []
+    loadimage_nodes = []
+    for i, node in enumerate(data):
+        if node.get('label') == 'LoadImage':
+            loadimage_indices.append(i)
+            loadimage_nodes.append(node)
+
+    # Если сортировка не требуется
+    if len(loadimage_nodes) <= 1:
+        return data.copy()
+
+    # Функция для извлечения ключа сортировки из узла LoadImage
+    def get_sort_key(node: Dict[str, Any]) -> str:
+        images = node.get('images', [])
+        if images and isinstance(images, list) and len(images) > 0:
+            # Берём label из первого элемента списка images (по примеру данных)
+            return images[0].get('label', '')
+        return ''  # если структура нарушена, такой элемент уйдёт в конец
+
+    # Сортируем LoadImage узлы
+    sorted_loadimage_nodes = sorted(loadimage_nodes, key=get_sort_key)
+
+    # Вставляем отсортированные узлы обратно на свои позиции
+    result = data.copy()
+    for idx, node in zip(loadimage_indices, sorted_loadimage_nodes):
+        result[idx] = node
+
+    return result
+
+
 @router.get('/{slug}', response_class=HTMLResponse)
 async def workflow_run_page(
     slug: str,
@@ -43,7 +80,7 @@ async def workflow_run_page(
         raise HTTPException(status_code=404, detail='Workflow not found')
     
     # groups = prepare_spec_groups(spec=workflow.spec_json, workflow_json=workflow.workflow_json)
-    groups_visible, groups_hidden_only = prepare_spec_groups(
+    groups_visible_first, groups_hidden_only = prepare_spec_groups(
         spec=workflow.spec_json,
         workflow_json=workflow.workflow_json
     )
@@ -58,6 +95,7 @@ async def workflow_run_page(
     #         'groups': groups
     #     }
     # )
+    groups_visible = sort_loadimage_nodes(groups_visible_first)
     return templates.TemplateResponse(
         '/user/workflows/run.html',
         {

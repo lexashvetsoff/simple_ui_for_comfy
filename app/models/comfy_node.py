@@ -18,4 +18,4 @@ class ComfyNode(Base):
     priority: Mapped[int] = mapped_column(Integer, default=10)
 
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

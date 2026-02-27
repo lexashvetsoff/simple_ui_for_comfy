@@ -15,4 +15,4 @@ class UserLimits(Base):
     max_concurrent_jobs: Mapped[int] = mapped_column(Integer, default=1)
     max_jobs_per_day: Mapped[int] = mapped_column(Integer, default=100)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

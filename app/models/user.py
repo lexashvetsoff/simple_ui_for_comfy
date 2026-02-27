@@ -17,4 +17,4 @@ class User(Base):
     daily_limit: Mapped[int] = mapped_column(Integer, default=1000)
     concurrent_limit: Mapped[int] = mapped_column(Integer, default=1)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

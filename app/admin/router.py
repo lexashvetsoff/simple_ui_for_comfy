@@ -4,7 +4,7 @@ from enum import Enum
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, desc
 from starlette.status import HTTP_302_FOUND
 
 from app.api.deps import get_db, require_admin
@@ -13,6 +13,8 @@ from app.models.user import User
 from app.models.user_limits import UserLimits
 from app.models.comfy_node import ComfyNode
 from app.models.workflow import Workflow
+from app.models.job import Job
+from app.models.job_execution import JobExecution
 from app.core.security import verify_password
 from app.core.jwt import create_access_token, create_refresh_token
 from app.services.auth_service import _clear_auth_cookies, _set_auth_cookies
@@ -26,6 +28,10 @@ from app.services.comfy_client import get_object_info
 router = APIRouter(prefix='/admin', tags=['admin-ui'])
 
 
+TOP_USERS_FOR_JOBS_GIST = 10
+TOP_ACTIVE_USERS = 5
+
+
 class UserRole(str, Enum):
     ADMIN = "ADMIN"
     USER = "USER"
@@ -34,11 +40,200 @@ class UserRole(str, Enum):
 @router.get('/', response_class=HTMLResponse)
 async def admin_dashboard(
     request: Request,
+    db: AsyncSession = Depends(get_db),
     user: User = Depends(require_admin)
 ):
+    # ------------------------------------------------------------
+    # 1. Количество запусков workflow (топ-10)
+    # ------------------------------------------------------------
+    stmt = (
+        select(
+            Workflow.id,
+            Workflow.name,
+            func.count(Job.id).label('count')
+        )
+        .join(Job, Workflow.id == Job.workflow_id)
+        .group_by(Workflow.id, Workflow.name)
+        .order_by(desc('count'))
+        .limit(10)
+    )
+    result = await db.execute(stmt)
+    workflow_counts = result.all() # list of (id, name, count)
+
+    workflow_labels = [w.name for w in workflow_counts]
+    workflow_data = [w.count for w in workflow_counts]
+
+    # ------------------------------------------------------------
+    # 2. Активность пользователей (% от общего числа job)
+    # ------------------------------------------------------------
+    # total_jobs = await db.execute(select(func.count(Job.id))) or 1
+    total_jobs_result = await db.execute(select(func.count(Job.id)))
+    total_jobs = total_jobs_result.scalar() or 1
+
+    stmt = (
+        select(
+            User.email,
+            func.count(Job.id).label('job_count')
+        )
+        .join(Job, User.id == Job.user_id)
+        .group_by(User.email)
+        .order_by(desc('job_count'))
+    )
+    result = await db.execute(stmt)
+    user_jobs = result.all() # list of (email, job_count)
+
+    # Для круговой диаграммы возьмём топ-10, остальное в "Other"
+    if len(user_jobs) > TOP_USERS_FOR_JOBS_GIST:
+        top_users = user_jobs[:TOP_USERS_FOR_JOBS_GIST]
+        other_count = sum(u.job_count for u in user_jobs[TOP_USERS_FOR_JOBS_GIST:])
+        user_labels = [u.email for u in top_users] + ['Other']
+        user_data = [u.job_count for u in top_users] + [other_count]
+    else:
+        user_labels = [u.email for u in user_jobs]
+        user_data = [u.job_count for u in user_jobs]
+    
+    # Проценты
+    user_percentages = [round((c / total_jobs) * 100, 1) for c in user_data]
+
+    # ------------------------------------------------------------
+    # 3. Использование ComfyNode (количество выполнений на узле)
+    # ------------------------------------------------------------
+    stmt = (
+        select(
+            ComfyNode.name,
+            func.count(JobExecution.id).label('exec_count')
+        )
+        .join(JobExecution, ComfyNode.id == JobExecution.node_id)
+        .group_by(ComfyNode.name)
+        .order_by(desc('exec_count'))
+    )
+    result = await db.execute(stmt)
+    node_usage = result.all() # list of (name, exec_count)
+
+    node_labels = [n.name for n in node_usage]
+    node_data = [n.exec_count for n in node_usage]
+
+    # ------------------------------------------------------------
+    # 4. Статусы job (QUEUED, RUNNING, DONE, ERROR)
+    # ------------------------------------------------------------
+    stmt = (
+        select(Job.status, func.count().label('count'))
+        .group_by(Job.status)
+    )
+    result = await db.execute(stmt)
+    status_counts = result.all() # list of (status, count)
+
+    status_labels = [s.status for s in status_counts]
+    status_data = [s.count for s in status_counts]
+
+    # ------------------------------------------------------------
+    # 5. Среднее время выполнения job_execution по workflow
+    # ------------------------------------------------------------
+    # Используем PostgreSQL: EXTRACT(EPOCH FROM ...)
+    duration = func.extract('epoch', JobExecution.finished_at - JobExecution.started_at).label('duration')
+    stmt = (
+        select(
+            Workflow.name,
+            func.avg(duration).label('avg_duration')
+        )
+        .join(Job, JobExecution.job_id == Job.id)
+        .join(Workflow, Job.workflow_id == Workflow.id)
+        .where(JobExecution.finished_at.isnot(None), JobExecution.started_at.isnot(None))
+        .group_by(Workflow.name)
+        .order_by(desc('avg_duration'))
+    )
+    result = await db.execute(stmt)
+    avg_durations = result.all() # list of (name, avg_duration)
+
+    duration_labels = [d.name for d in avg_durations]
+    # duration_data = [round(d.avg_duration, 2) for d in avg_durations]  # секунды
+    duration_data = [float(d.avg_duration) if d.avg_duration is not None else 0 for d in avg_durations]  # секунды
+
+    # ------------------------------------------------------------
+    # 6. Топ-n активных пользователей
+    # ------------------------------------------------------------
+    # Сначала получаем топ-n пользователей по количеству job
+    stmt = (
+        select(User.id, User.email, func.count(Job.id).label('total_jobs'))
+        .join(Job, User.id == Job.user_id)
+        .group_by(User.id, User.email)
+        .order_by(desc('total_jobs'))
+        .limit(TOP_ACTIVE_USERS)
+    )
+    result = await db.execute(stmt)
+    top_users_raw = result.all() # list of (id, email, total_jobs)
+
+    top_active_users = []
+    for uid, email, total in top_users_raw:
+        # Самое частое workflow для этого пользователя
+        stmt_wf = (
+            select(Workflow.name, func.count().label('wf_count'))
+            .join(Job, Workflow.id == Job.workflow_id)
+            .where(Job.user_id == uid)
+            .group_by(Workflow.name)
+            .order_by(desc('wf_count'))
+            .limit(1)
+        )
+        res_wf = await db.execute(stmt_wf)
+        top_wf = res_wf.first()
+        top_workflow_name = top_wf.name if top_wf else 'N/A'
+
+        # Среднее время выполнения job этого пользователя
+        stmt_dur = (
+            select(func.avg(duration).label('avg_dur'))
+            .select_from(JobExecution)
+            .join(Job, JobExecution.job_id == Job.id)
+            .where(
+                Job.user_id == uid,
+                JobExecution.finished_at.isnot(None),
+                JobExecution.started_at.isnot(None)
+            )
+        )
+        res_dur = await db.execute(stmt_dur)
+        # avg_dur = res_dur.scalar()
+        # avg_duration = round(avg_dur, 2) if avg_dur else None
+        avg_dur = res_dur.scalar()
+        avg_duration = float(avg_dur) if avg_dur is not None else None
+
+        top_active_users.append({
+            'email': email,
+            'total_jobs': total,
+            'top_workflow': top_workflow_name,
+            'avg_duration': avg_duration
+        })
+
+    # ------------------------------------------------------------
+    # Формируем контекст для шаблона
+    # ------------------------------------------------------------
+    context = {
+        "request": request,
+        "user": user,
+        "workflow_chart": {
+            "labels": workflow_labels,
+            "data": workflow_data
+        },
+        "user_activity_chart": {
+            "labels": user_labels,
+            "data": user_percentages   # проценты
+        },
+        "node_usage_chart": {
+            "labels": node_labels,
+            "data": node_data
+        },
+        "job_status_chart": {
+            "labels": status_labels,
+            "data": status_data
+        },
+        "avg_duration_chart": {
+            "labels": duration_labels,
+            "data": duration_data
+        },
+        "top_users": top_active_users
+    }
+
     return templates.TemplateResponse(
         '/admin/dashboard.html',
-        {'request': request, 'user': user}
+        context
     )
 
 

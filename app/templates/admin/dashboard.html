@@ -2,5 +2,144 @@
 
 {% block content %}
 <h2>Dashboard</h2>
-<p>Admin UI is alive 🚀</p>
+
+<!-- Контейнеры для графиков (сетка) -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <!-- График 1: Запуски workflow -->
+    <div class="canvas-two">
+        <canvas id="workflowChart" width="600" height="200"></canvas>
+    </div>
+    <!-- График 2: Активность пользователей -->
+    <div class="canvas-two">
+        <canvas id="userActivityChart" width="400" height="200"></canvas>
+    </div>
+    <!-- График 3: Использование узлов -->
+    <div class="canvas-two">
+        <canvas id="nodeUsageChart" width="600" height="200"></canvas>
+    </div>
+    <!-- График 4: Статусы job -->
+    <div class="canvas-two">
+        <canvas id="jobStatusChart" width="400" height="200"></canvas>
+    </div>
+    <!-- График 5: Среднее время по workflow -->
+    <div class="canvas-one" style="grid-column: span 2;">
+        <canvas id="avgDurationChart" width="800" height="200"></canvas>
+    </div>
+</div>
+
+<!-- Таблица топ-5 пользователей -->
+<h3>Топ-5 активных пользователей</h3>
+<table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Всего запусков</th>
+            <th>Самое популярное workflow</th>
+            <th>Среднее время выполнения (сек)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in top_users %}
+        <tr>
+            <td>{{ user.email }}</td>
+            <td>{{ user.total_jobs }}</td>
+            <td>{{ user.top_workflow }}</td>
+            <td>{{ user.avg_duration if user.avg_duration else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Подключаем Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Данные из контекста (переданы как JSON)
+    const workflowData = {{ workflow_chart | tojson }};
+    const userActivityData = {{ user_activity_chart | tojson }};
+    const nodeUsageData = {{ node_usage_chart | tojson }};
+    const jobStatusData = {{ job_status_chart | tojson }};
+    const avgDurationData = {{ avg_duration_chart | tojson }};
+
+    // 1. Гистограмма workflow
+    new Chart(document.getElementById('workflowChart'), {
+        type: 'bar',
+        data: {
+            labels: workflowData.labels,
+            datasets: [{
+                label: 'Количество запусков',
+                data: workflowData.data,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)'
+            }]
+        },
+        options: { responsive: false }
+    });
+
+    // 2. Круговая диаграмма активности пользователей (проценты)
+    new Chart(document.getElementById('userActivityChart'), {
+        type: 'pie',
+        data: {
+            labels: userActivityData.labels,
+            datasets: [{
+                data: userActivityData.data,
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#C9CBCF']
+            }]
+        },
+        options: { 
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'right' // может быть 'top', 'bottom', 'left', 'right'
+                }
+            }
+        }
+    });
+
+    // 3. Гистограмма использования узлов
+    new Chart(document.getElementById('nodeUsageChart'), {
+        type: 'bar',
+        data: {
+            labels: nodeUsageData.labels,
+            datasets: [{
+                label: 'Количество выполнений',
+                data: nodeUsageData.data,
+                backgroundColor: 'rgba(255, 159, 64, 0.5)'
+            }]
+        },
+        options: { responsive: false }
+    });
+
+    // 4. Круговая диаграмма статусов job
+    new Chart(document.getElementById('jobStatusChart'), {
+        type: 'pie',
+        data: {
+            labels: jobStatusData.labels,
+            datasets: [{
+                data: jobStatusData.data,
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+            }]
+        },
+        options: { 
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'right' // может быть 'top', 'bottom', 'left', 'right'
+                }
+            }
+        }
+    });
+
+    // 5. Гистограмма среднего времени выполнения
+    new Chart(document.getElementById('avgDurationChart'), {
+        type: 'bar',
+        data: {
+            labels: avgDurationData.labels,
+            datasets: [{
+                label: 'Среднее время (сек)',
+                data: avgDurationData.data,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)'
+            }]
+        },
+        options: { responsive: false }
+    });
+</script>
 {% endblock %}

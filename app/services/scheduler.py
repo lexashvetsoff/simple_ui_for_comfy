@@ -150,8 +150,8 @@ async def scheduler_tick(
         # sanitize_prompt['extra_pnginfo'] = [{'workflow': job.prepared_workflow}]
         sanitize_prompt['extra_pnginfo'] = {'workflow': job.prepared_workflow}
 
-        with open('sanitize_prompt.json', 'w', encoding='utf-8') as f:
-            json.dump(sanitize_prompt, f, ensure_ascii=False, )
+        # with open('sanitize_prompt.json', 'w', encoding='utf-8') as f:
+        #     json.dump(sanitize_prompt, f, ensure_ascii=False, )
 
         try:
             prompt_id = await submit_workflow(

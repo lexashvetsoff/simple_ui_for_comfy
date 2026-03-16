@@ -302,7 +302,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 6,
+            "order": 5,
             "mode": 0,
             "inputs": [
                 {
@@ -357,7 +357,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 8,
+            "order": 7,
             "mode": 0,
             "inputs": [
                 {
@@ -417,7 +417,7 @@
                 54.99821090698242
             ],
             "flags": {},
-            "order": 9,
+            "order": 8,
             "mode": 0,
             "inputs": [
                 {
@@ -479,7 +479,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 10,
+            "order": 9,
             "mode": 0,
             "inputs": [
                 {
@@ -546,7 +546,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 7,
+            "order": 6,
             "mode": 0,
             "inputs": [
                 {
@@ -601,7 +601,7 @@
             "flags": {
                 "collapsed": false
             },
-            "order": 12,
+            "order": 11,
             "mode": 0,
             "inputs": [
                 {
@@ -650,134 +650,6 @@
             "bgcolor": "#000"
         },
         {
-            "id": 6,
-            "type": "CLIPTextEncode",
-            "pos": [
-                -815.4661145331022,
-                -69.80822266136911
-            ],
-            "size": [
-                509.38250732421875,
-                161.7965087890625
-            ],
-            "flags": {
-                "collapsed": false
-            },
-            "order": 5,
-            "mode": 0,
-            "inputs": [
-                {
-                    "localized_name": "clip",
-                    "name": "clip",
-                    "type": "CLIP",
-                    "link": 401
-                },
-                {
-                    "localized_name": "text",
-                    "name": "text",
-                    "type": "STRING",
-                    "widget": {
-                        "name": "text"
-                    },
-                    "link": 372
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "CONDITIONING",
-                    "name": "CONDITIONING",
-                    "type": "CONDITIONING",
-                    "slot_index": 0,
-                    "links": [
-                        402,
-                        403
-                    ]
-                }
-            ],
-            "title": "CLIP Text Encode (Positive Prompt)",
-            "properties": {
-                "cnr_id": "comfy-core",
-                "ver": "0.3.38",
-                "Node name for S&R": "CLIPTextEncode",
-                "enableTabs": false,
-                "tabWidth": 65,
-                "tabXOffset": 10,
-                "hasSecondTab": false,
-                "secondTabText": "Send Back",
-                "secondTabOffset": 80,
-                "secondTabWidth": 65,
-                "ue_properties": {
-                    "version": "7.4.1",
-                    "widget_ue_connectable": {},
-                    "input_ue_unconnectable": {}
-                }
-            },
-            "widgets_values": [
-                ""
-            ],
-            "color": "#232",
-            "bgcolor": "#353"
-        },
-        {
-            "id": 246,
-            "type": "ttN text",
-            "pos": [
-                -793.3589478498369,
-                140.26181238840726
-            ],
-            "size": [
-                400,
-                200
-            ],
-            "flags": {
-                "collapsed": false
-            },
-            "order": 3,
-            "mode": 0,
-            "inputs": [
-                {
-                    "localized_name": "text",
-                    "name": "text",
-                    "type": "STRING",
-                    "widget": {
-                        "name": "text"
-                    },
-                    "link": null
-                }
-            ],
-            "outputs": [
-                {
-                    "localized_name": "text",
-                    "name": "text",
-                    "type": "STRING",
-                    "links": [
-                        372
-                    ]
-                }
-            ],
-            "properties": {
-                "cnr_id": "comfyui_tinyterranodes",
-                "ver": "c669e6cff81ba44cce91c9eee3236c1a64725394",
-                "Node name for S&R": "ttN text",
-                "enableTabs": false,
-                "tabWidth": 65,
-                "tabXOffset": 10,
-                "hasSecondTab": false,
-                "secondTabText": "Send Back",
-                "secondTabOffset": 80,
-                "secondTabWidth": 65,
-                "ttNnodeVersion": "1.0.0",
-                "ue_properties": {
-                    "version": "7.4.1",
-                    "widget_ue_connectable": {},
-                    "input_ue_unconnectable": {}
-                }
-            },
-            "widgets_values": [
-                "remove all watermarks and texts while maintaining the original composition"
-            ]
-        },
-        {
             "id": 31,
             "type": "KSampler",
             "pos": [
@@ -789,7 +661,7 @@
                 474.0000000000001
             ],
             "flags": {},
-            "order": 11,
+            "order": 10,
             "mode": 0,
             "inputs": [
                 {
@@ -900,7 +772,7 @@
                 }
             },
             "widgets_values": [
-                551729212447301,
+                475590188552984,
                 "randomize",
                 20,
                 1,
@@ -923,7 +795,7 @@
                 660
             ],
             "flags": {},
-            "order": 13,
+            "order": 12,
             "mode": 0,
             "inputs": [
                 {
@@ -978,7 +850,7 @@
                 341.32053821460215
             ],
             "flags": {},
-            "order": 4,
+            "order": 3,
             "mode": 0,
             "inputs": [
                 {
@@ -1029,6 +901,75 @@
                 "wm_Было.webp",
                 "image"
             ]
+        },
+        {
+            "id": 6,
+            "type": "CLIPTextEncode",
+            "pos": [
+                -815.4661145331022,
+                -69.80822266136911
+            ],
+            "size": [
+                509.38250732421875,
+                161.7965087890625
+            ],
+            "flags": {
+                "collapsed": false
+            },
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "clip",
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 401
+                },
+                {
+                    "localized_name": "text",
+                    "name": "text",
+                    "type": "STRING",
+                    "widget": {
+                        "name": "text"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "CONDITIONING",
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "slot_index": 0,
+                    "links": [
+                        402,
+                        403
+                    ]
+                }
+            ],
+            "title": "CLIP Text Encode (Positive Prompt)",
+            "properties": {
+                "cnr_id": "comfy-core",
+                "ver": "0.3.38",
+                "Node name for S&R": "CLIPTextEncode",
+                "enableTabs": false,
+                "tabWidth": 65,
+                "tabXOffset": 10,
+                "hasSecondTab": false,
+                "secondTabText": "Send Back",
+                "secondTabOffset": 80,
+                "secondTabWidth": 65,
+                "ue_properties": {
+                    "version": "7.4.1",
+                    "widget_ue_connectable": {},
+                    "input_ue_unconnectable": {}
+                }
+            },
+            "widgets_values": [
+                "remove all watermarks and texts while maintaining the original composition"
+            ],
+            "color": "#232",
+            "bgcolor": "#353"
         }
     ],
     "links": [
@@ -1071,14 +1012,6 @@
             124,
             0,
             "IMAGE"
-        ],
-        [
-            372,
-            246,
-            0,
-            6,
-            1,
-            "STRING"
         ],
         [
             395,
@@ -1165,10 +1098,10 @@
     "config": {},
     "extra": {
         "ds": {
-            "scale": 0.6588450000000198,
+            "scale": 0.6588450000000206,
             "offset": [
-                2133.793550151251,
-                221.8004229716895
+                2059.7177147947473,
+                513.7186166065454
             ]
         },
         "frontendVersion": "1.23.4",

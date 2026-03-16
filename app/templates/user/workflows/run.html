@@ -55,6 +55,14 @@
                                 style="width: 80%;"
                                 {% if p.required %}required{% endif %}
                             >{{ p.default | default("") }}</textarea>
+                        
+                        {% elif g.label == 'Text Multiline' %}
+                            <textarea
+                                name="param__{{ p.key }}"
+                                rows="10"
+                                style="width: 80%;"
+                                {% if p.required %}required{% endif %}
+                            >{{ p.default | default("") }}</textarea>
 
                         {% else %}
                             <input type="text" name="param__{{ p.key }}" value="{{ p.default | default('') }}" style="width: 360px;">

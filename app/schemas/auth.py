@@ -14,3 +14,14 @@ class LoginRequest(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class TokenRequest(BaseModel):
+    client_id: str
+    client_secret: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = 'bearer'
+    expire_in: int

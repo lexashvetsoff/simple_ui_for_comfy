@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException, status, Request, Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,8 +9,11 @@ from app.core.config import settings
 from app.core.oauth2 import oauth2_scheme
 from app.db.session import AsyncSessionLocal
 from app.models.user import User
-from app.core.jwt import create_access_token
+from app.core.jwt import create_access_token, verify_client_access_token
 from app.services.auth_service import _set_access_cookie
+
+
+security = HTTPBearer()
 
 
 def get_settings():
@@ -132,3 +136,15 @@ def require_admin(user: User = Depends(get_current_user)):
     if user.role != 'ADMIN':
         raise HTTPException(status_code=403, detail='Admin only')
     return user
+
+
+def get_current_client(credintials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    try:
+        payload = verify_client_access_token(credintials.credentials)
+        return payload['sub']
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"}
+        )

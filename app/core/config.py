@@ -1,5 +1,7 @@
 import os
+import json
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 
 
 BASE_PATH = os.path.dirname(__file__)
@@ -30,6 +32,16 @@ class Settings(BaseSettings):
     COMFY_DEAD_AFTER: int   # секунд
 
     STORAGE_ROOT: str
+
+    VALID_CLIENTS: dict = {}
+
+    @field_validator("VALID_CLIENTS", mode="before")
+    @classmethod
+    def _parse_clients(cls, v):
+        if isinstance(v, str):
+            try: return json.loads(v)
+            except json.JSONDecodeError: return {}
+        return v
 
     model_config = SettingsConfigDict(
         # env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")

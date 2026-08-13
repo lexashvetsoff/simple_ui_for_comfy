@@ -25,3 +25,17 @@ def create_refresh_token(user_id: int) -> str:
         {'sub': str(user_id), 'type': 'refresh'},
         timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
     )
+
+
+def create_api_token(client_id: str) -> str:
+    return create_token(
+        {'sub': client_id, 'type': 'access'},
+        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+
+def verify_client_access_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except ValueError as e:
+        raise ValueError(f'Invalid token: {e}')

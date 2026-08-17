@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+import uuid
 import httpx
 from fastapi import HTTPException
 
@@ -19,6 +20,7 @@ def _ensure_prompt_payload(workflow_or_payload: Dict[str, Any]) -> Dict[str, Any
 
 async def submit_workflow(*, node: ComfyNode, workflow: Dict[str, Any]) -> str:
     url = f"{node.base_url}/prompt"
+    workflow['client_id'] = str(uuid.uuid4())
     payload = _ensure_prompt_payload(workflow)
 
     timeout = httpx.Timeout(10.0, read=60.0)
